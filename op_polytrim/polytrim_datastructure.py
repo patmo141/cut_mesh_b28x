@@ -25,19 +25,25 @@ from mathutils.bvhtree import BVHTree
 from mathutils.geometry import intersect_point_line, intersect_line_plane
 from bpy_extras import view3d_utils
 
+
+#TODO update to subtree tracking the best bmesh_fns
 from ..bmesh_fns import grow_selection_to_find_face, flood_selection_faces, edge_loops_from_bmedges_old, edge_loops_from_bmedges, flood_selection_by_verts, flood_selection_edge_loop, ensure_lookup
 from ..bmesh_fns import face_region_boundary_loops, bmesh_loose_parts_faces
+
+
+
 from ..cut_algorithms import cross_section_2seeds_ver1, path_between_2_points, path_between_2_points_clean, find_bmedges_crossing_plane
-from ..geodesic import GeoPath, geodesic_walk, continue_geodesic_walk, gradient_descent
-from .. import common_drawing
-from ..common.rays import get_view_ray_data, ray_cast
-from ..common.blender import bversion
-from ..common.colors import get_random_color
-from ..common.utils import get_matrices
-from ..common.bezier import CubicBezier, CubicBezierSpline, CompositeSmoothCubicBezierSpline
-from ..common.shaders import circleShader
-from ..common.simplify import simplify_RDP, relax_vert_chain
-from ..common.profiler import profiler
+#from ..geodesic import GeoPath, geodesic_walk, continue_geodesic_walk, gradient_descent
+
+
+from ..subtrees.addon_common.common.rays import get_view_ray_data, ray_cast
+from ..subtrees.addon_common.common.blender import bversion
+from ..subtrees.addon_common.common.colors import get_random_color
+from ..subtrees.addon_common.common.utils import get_matrices
+from ..subtrees.addon_common.common.bezier import CubicBezier, CubicBezierSpline, CompositeSmoothCubicBezierSpline
+from ..subtrees.addon_common.common.shaders import circleShader
+from ..subtrees.addon_common.common.simplify import simplify_RDP, relax_vert_chain
+
 
 from concurrent.futures.thread import ThreadPoolExecutor
 
@@ -641,21 +647,21 @@ class NetworkCutter(object):
         return
     
     
-    def pre_vis_geo(self, seg, bme, bvh, mx):
+    #def pre_vis_geo(self, seg, bme, bvh, mx):
 
-        geo = GeoPath(bme, bvh, mx)
-        geo.seed = bme.faces[seg.ip0.face_index]
-        geo.seed_loc = seg.ip0.local_loc
-        geo.target = bme.faces[seg.ip1.face_index]
-        geo.target_loc =  seg.ip0.local_loc
+        #geo = GeoPath(bme, bvh, mx)
+        #geo.seed = bme.faces[seg.ip0.face_index]
+        #geo.seed_loc = seg.ip0.local_loc
+        #geo.target = bme.faces[seg.ip1.face_index]
+        #geo.target_loc =  seg.ip0.local_loc
             
-        geo.calculate_walk()
+        #geo.calculate_walk()
         
-        self.geodesic = geo
+        #self.geodesic = geo
         
-        if geo.found_target():
-            geo.gradient_descend()
-            seg.path = [mx * v for v in geo.path]
+        #if geo.found_target():
+        #    geo.gradient_descend()
+        #    seg.path = [mx * v for v in geo.path]
 
     def preview_bad_segments_geodesic(self):
         for seg in self.input_net.segments:

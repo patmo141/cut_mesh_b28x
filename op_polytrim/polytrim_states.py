@@ -9,9 +9,9 @@ import random
 
 from bpy_extras import view3d_utils
 
-from ..cookiecutter.cookiecutter import CookieCutter
-from ..common.blender import show_error_message
-from ..common.fsm import FSM
+from ..subtrees.cookiecutter import CookieCutter
+from ..subtrees.addon_common.common.blender import show_error_message
+from ..subtrees.addon_common.common.fsm import FSM
 from .polytrim_datastructure import InputPoint, SplineSegment, CurveNode
 
 '''
