@@ -13,8 +13,8 @@ from mathutils import Vector, Matrix, Quaternion
 from mathutils.geometry import intersect_line_plane, intersect_point_line, distance_point_to_plane, intersect_line_line_2d, intersect_line_line
 
 #Cut Mesh imports
-from .bmesh_fns import face_neighbors, flood_selection_faces, grow_selection_to_find_face, edge_loops_from_bmedges, walk_non_man_edge
-from .common.blender import bversion
+from ..subtrees.bmesh_utilities.bmesh_utilities_common import face_neighbors, flood_selection_faces, grow_selection_to_find_face, edge_loops_from_bmedges, walk_non_man_edge
+from ..subtrees.addon_common.common.blender import bversion
 
 #basic utils
 def list_shift(seq, n):

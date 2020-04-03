@@ -3,16 +3,15 @@ Created on Oct 8, 2015
 
 @author: Patrick
 '''
-
 import math
 import bgl
 
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix, Color
 
-from .. import common_drawing
-from ..cookiecutter.cookiecutter import CookieCutter
-from ..common.shaders import circleShader
+#from .. import common_drawing
+from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
+from ..subtrees.addon_common.common.shaders import circleShader
 
 from .polytrim_datastructure import InputPoint, CurveNode, SplineSegment
 
@@ -102,6 +101,8 @@ class Polytrim_UI_Draw():
     @CookieCutter.Draw('post3d')
     def draw_postview(self):
 
+        return
+    
         self.draw_3D_stuff()
 
         # skip the rest of the drawing if user is navigating or doing stuff with ui
@@ -135,6 +136,9 @@ class Polytrim_UI_Draw():
 
     @CookieCutter.Draw('post2d')
     def draw_postpixel(self):
+        
+        return
+    
         self.draw_2D_stuff()
         # if self.sketcher.has_locs:
         if self._state == 'spline' and self.spline_fsm.state == 'sketch':
@@ -143,6 +147,8 @@ class Polytrim_UI_Draw():
 
     #TODO: Clean up/ Organize this function into parts
     def draw_2D_stuff(self):
+        return
+    
         context = self.context
         mouse_loc = self.actions.mouse
         ctrl_pressed = self.actions.ctrl
@@ -231,6 +237,9 @@ class Polytrim_UI_Draw():
 
 
     def draw_3D_stuff(self):
+        
+        return
+    
         context = self.context
         region,r3d = context.region,context.space_data.region_3d
         view_dir = r3d.view_rotation * Vector((0,0,-1))

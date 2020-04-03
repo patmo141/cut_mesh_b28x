@@ -5,16 +5,18 @@ Created on Oct 8, 2015
 '''
 import bpy
 
-from ..cookiecutter.cookiecutter import CookieCutter
-from ..common import ui
-from ..common.ui import Drawing
+from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
+from ..subtrees.addon_common.common import ui
+from ..subtrees.addon_common.common.utils import get_settings
+
+#from ..subtrees.addon_common.common.ui import Drawing
 
 from .polytrim_ui_init       import Polytrim_UI_Init
 from .polytrim_states        import Polytrim_States
 from .polytrim_ui_tools      import Polytrim_UI_Tools
 from .polytrim_ui_draw       import Polytrim_UI_Draw
 from .polytrim_datastructure import InputNetwork, NetworkCutter, SplineNetwork
-from ..common.utils import get_settings
+
 
 
 #ModalOperator

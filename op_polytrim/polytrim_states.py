@@ -9,7 +9,7 @@ import random
 
 from bpy_extras import view3d_utils
 
-from ..subtrees.cookiecutter import CookieCutter
+from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
 from ..subtrees.addon_common.common.blender import show_error_message
 from ..subtrees.addon_common.common.fsm import FSM
 from .polytrim_datastructure import InputPoint, SplineSegment, CurveNode
@@ -198,7 +198,7 @@ class Polytrim_States():
     ######################################################
     # spline editing
 
-    @spline_fsm.FSM_State('main')
+    @CookieCutter.FSM_State('main')
     def spline_main(self):
         self.cursor_modal_set('CROSSHAIR')
         context = self.context
@@ -261,11 +261,11 @@ class Polytrim_States():
     #--------------------------------------
     # select
 
-    @spline_fsm.FSM_State('select', 'can enter')
+    @CookieCutter.FSM_State('select', 'can enter')
     def spline_select_can_enter(self):
         return self.net_ui_context.hovered_near[0] in {'POINT'}
 
-    @spline_fsm.FSM_State('select')
+    @CookieCutter.FSM_State('select')
     def spline_select(self):
         self.net_ui_context.selected = self.net_ui_context.hovered_near[1]
         self.tweak_release = 'select'
@@ -276,7 +276,7 @@ class Polytrim_States():
     #--------------------------------------
     # tweak
 
-    @spline_fsm.FSM_State('tweak', 'can enter')
+    @CookieCutter.FSM_State('tweak', 'can enter')
     def spline_tweak_can_enter(self):
         if not self.net_ui_context.selected: return False
         if not hasattr(self, 'tweak_release'): self.tweak_release = None
@@ -285,7 +285,7 @@ class Polytrim_States():
         assert self.tweak_release or self.tweak_press, 'Must set either self.tweak_release or self.tweak_press!'
         return True
 
-    @spline_fsm.FSM_State('tweak', 'enter')
+    @CookieCutter.FSM_State('tweak', 'enter')
     def spline_tweak_enter(self):
         context = self.context
         loc3d_reg2D = view3d_utils.location_3d_to_region_2d
@@ -295,7 +295,7 @@ class Polytrim_States():
         self.grabber.initiate_grab_point()
         #self.ui_text_update()
 
-    @spline_fsm.FSM_State('tweak')
+    @CookieCutter.FSM_State('tweak')
     def spline_tweak(self):
         if self.tweak_release and self.actions.released(self.tweak_release):
             return 'main'
@@ -315,7 +315,7 @@ class Polytrim_States():
             self.net_ui_context.nearest_non_man_loc()
             self.grabber.move_grab_point(self.context, p2d)
 
-    @spline_fsm.FSM_State('tweak', 'exit')
+    @CookieCutter.FSM_State('tweak', 'exit')
     def spline_tweak_exit(self):
         #confirm location
         if self.tweak_moving:
@@ -334,7 +334,7 @@ class Polytrim_States():
     #--------------------------------------
     # connect (two endpoints)
 
-    @spline_fsm.FSM_State('connect', 'can enter')
+    @CookieCutter.FSM_State('connect', 'can enter')
     def spline_connect_can_enter(self):
         # make sure selected is an endpoint
         s = self.net_ui_context.selected
@@ -348,7 +348,7 @@ class Polytrim_States():
             return False
         return True
 
-    @spline_fsm.FSM_State('connect')
+    @CookieCutter.FSM_State('connect')
     def spline_connect(self):
         s = self.net_ui_context.selected
         n = self.net_ui_context.hovered_near[1]
@@ -363,7 +363,7 @@ class Polytrim_States():
     #--------------------------------------
     # add point (connected to selected endpoint)
 
-    @spline_fsm.FSM_State('add point', 'can enter')
+    @CookieCutter.FSM_State('add point', 'can enter')
     def spline_add_point_can_enter(self):
         # make sure selected is an endpoint
         s = self.net_ui_context.selected
@@ -376,7 +376,7 @@ class Polytrim_States():
         if not self.ray_cast_source_hit(self.actions.mouse): return False
         return True
 
-    @spline_fsm.FSM_State('add point')
+    @CookieCutter.FSM_State('add point')
     def spline_add_point(self):
         s = self.net_ui_context.selected
         n = self.add_point(self.actions.mouse)
@@ -391,7 +391,7 @@ class Polytrim_States():
     #--------------------------------------
     # insert point
 
-    @spline_fsm.FSM_State('insert point', 'can enter')
+    @CookieCutter.FSM_State('insert point', 'can enter')
     def spline_insert_point_can_enter(self):
         # make sure mouse is over source
         if not self.ray_cast_source_hit(self.actions.mouse): return False
@@ -402,7 +402,7 @@ class Polytrim_States():
 
         return True
 
-    @spline_fsm.FSM_State('insert point')
+    @CookieCutter.FSM_State('insert point')
     def spline_insert_point(self):
         n = self.insert_spline_point(self.actions.mouse)
         self.net_ui_context.selected = n
@@ -414,7 +414,7 @@ class Polytrim_States():
     #--------------------------------------
     # add point disconnected
 
-    @spline_fsm.FSM_State('add point (disconnected)', 'can enter')
+    @CookieCutter.FSM_State('add point (disconnected)', 'can enter')
     def spline_add_point_disconnected_can_enter(self):
         # make sure mouse is over source
         hn = self.net_ui_context.hovered_near
@@ -423,7 +423,7 @@ class Polytrim_States():
         if not self.ray_cast_source_hit(self.actions.mouse): return False
         return True
 
-    @spline_fsm.FSM_State('add point (disconnected)')
+    @CookieCutter.FSM_State('add point (disconnected)')
     def spline_add_point_disconnected(self):
         n = self.add_point(self.actions.mouse)
         self.net_ui_context.selected = n
@@ -437,18 +437,18 @@ class Polytrim_States():
     # grab
     # TODO: can we not just use tweak?  yes we can just use tweak
 
-    @spline_fsm.FSM_State('grab', 'can enter')
+    @CookieCutter.FSM_State('grab', 'can enter')
     def spline_grab_can_enter(self):
         return (not self.spline_net.is_empty and self.net_ui_context.selected != None)
 
-    @spline_fsm.FSM_State('grab', 'enter')
+    @CookieCutter.FSM_State('grab', 'enter')
     def spline_grab_enter(self):
         self.header_text_set("'MoveMouse' and 'LeftClick' to adjust node location, Right Click to cancel the grab")
         self.grabber.initiate_grab_point()
         self.grabber.move_grab_point(self.context, self.actions.mouse)
         #self.ui_text_update()
 
-    @spline_fsm.FSM_State('grab')
+    @CookieCutter.FSM_State('grab')
     def spline_grab(self):
         # no navigation in grab mode
         self.cursor_modal_set('HAND')
@@ -473,7 +473,7 @@ class Polytrim_States():
             #self.net_ui_context.hover()
             self.grabber.move_grab_point(self.context, self.actions.mouse)
 
-    @spline_fsm.FSM_State('grab', 'exit')
+    @CookieCutter.FSM_State('grab', 'exit')
     def spline_grab_exit(self):
         #confirm location
         x,y = self.actions.mouse
@@ -491,7 +491,7 @@ class Polytrim_States():
     #--------------------------------------
     # sketch
 
-    @spline_fsm.FSM_State('sketch', 'can enter')
+    @CookieCutter.FSM_State('sketch', 'can enter')
     def spline_sketch_can_enter(self):
         # as long as mouse is over source, sketch either starts:
         # 1. from selected endpoint if mouse is near (or hovering) selected
@@ -509,7 +509,7 @@ class Polytrim_States():
         # case 2
         return True
 
-    @spline_fsm.FSM_State('sketch', 'enter')
+    @CookieCutter.FSM_State('sketch', 'enter')
     def spline_sketch_enter(self):
         self.sketcher.reset()
 
@@ -524,14 +524,14 @@ class Polytrim_States():
             self.net_ui_context.selected = self.sketching_start
         self.sketcher.add_loc(*self.actions.mouse)
 
-    @spline_fsm.FSM_State('sketch')
+    @CookieCutter.FSM_State('sketch')
     def spline_sketch(self):
         if self.actions.mousemove:
             self.sketcher.smart_add_loc(*self.actions.mouse)
         if self.actions.released('sketch'):
             return 'main'
 
-    @spline_fsm.FSM_State('sketch', 'exit')
+    @CookieCutter.FSM_State('sketch', 'exit')
     def spline_sketch_exit(self):
         is_sketch = self.sketcher.is_good()
         if is_sketch:
@@ -684,7 +684,7 @@ class Polytrim_States():
     ######################################################
     # seed/patch selection state
 
-    @seed_fsm.FSM_State('main')
+    @CookieCutter.FSM_State('main')
     def modal_seed(self):
         self.cursor_modal_set('EYEDROPPER')
 
@@ -706,7 +706,7 @@ class Polytrim_States():
     ######################################################
     # segmentation state
 
-    @segmentation_fsm.FSM_State('main')
+    @CookieCutter.FSM_State('main')
     def modal_segmentation(self):
         self.cursor_modal_set('CROSSHAIR')
 
@@ -733,12 +733,12 @@ class Polytrim_States():
     ######################################################
     # region painting
 
-    @region_fsm.FSM_State('main', 'enter')
+    @CookieCutter.FSM_State('main', 'enter')
     def region_main_enter(self):
         self.brush = self.PaintBrush(self.net_ui_context, radius=self.brush_radius)
         self.ui_text_update()
 
-    @region_fsm.FSM_State('main')
+    @CookieCutter.FSM_State('main')
     def region_main(self):
         self.cursor_modal_set('PAINT_BRUSH')
 
@@ -754,13 +754,13 @@ class Polytrim_States():
             return 'paint delete'
 
 
-    @region_fsm.FSM_State('paint', 'can enter')
+    @CookieCutter.FSM_State('paint', 'can enter')
     def region_paint_can_enter(self):
         #any time really, may require a BVH update if
         #network cutter has been executed
         return True
 
-    @region_fsm.FSM_State('paint', 'enter')
+    @CookieCutter.FSM_State('paint', 'enter')
     def region_paint_enter(self):
         #set the cursor to to something
         self.network_cutter.find_boundary_faces_cycles()
@@ -769,7 +769,7 @@ class Polytrim_States():
         self.last_update = 0
         self.paint_dirty = False
 
-    @region_fsm.FSM_State('paint')
+    @CookieCutter.FSM_State('paint')
     def region_paint(self):
         self.cursor_modal_set('PAINT_BRUSH')
 
@@ -792,14 +792,14 @@ class Polytrim_States():
             self.paint_dirty = False
             self.last_update = time.time()
 
-    @region_fsm.FSM_State('paint', 'exit')
+    @CookieCutter.FSM_State('paint', 'exit')
     def region_paint_exit(self):
         self.brush.absorb_geom_geodesic(self.context, self.actions.mouse)
         self.paint_confirm_mergey()
         self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
 
 
-    @region_fsm.FSM_State('paint delete', 'enter')
+    @CookieCutter.FSM_State('paint delete', 'enter')
     def region_unpaint_enter(self):
         #set the cursor to to something
         self.network_cutter.find_boundary_faces_cycles()
@@ -808,7 +808,7 @@ class Polytrim_States():
         self.last_update = 0
         self.paint_dirty = False
 
-    @region_fsm.FSM_State('paint delete')
+    @CookieCutter.FSM_State('paint delete')
     def region_unpaint(self):
         self.cursor_modal_set('PAINT_BRUSH')
 
@@ -831,7 +831,7 @@ class Polytrim_States():
             self.paint_dirty = False
             self.last_update = time.time()
 
-    @region_fsm.FSM_State('paint delete', 'exit')
+    @CookieCutter.FSM_State('paint delete', 'exit')
     def region_unpaint_exit(self):
         self.brush.absorb_geom_geodesic(self.context, self.actions.mouse)
         self.paint_confirm_subtract()

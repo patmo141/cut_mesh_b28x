@@ -46,8 +46,6 @@ from .op_polytrim.polytrim import CutMesh_Polytrim
 #addon preferences
 class CutMeshPreferences(AddonPreferences):
     bl_idname = __name__
-
-    addons = bpy.context.user_preferences.addons
     
     #Segmentation Editor Behavior
     spline_preview_tess = IntProperty(name = 'Spline Teseslation', default = 20, min = 3, max = 100)

@@ -9,10 +9,9 @@ import random
 
 from bpy_extras import view3d_utils
 
-from ..cookiecutter.cookiecutter import CookieCutter
-from ..common import ui
-from ..common.blender import show_error_message
-from ..common.ui import Drawing
+from ..subtrees.addon_common.common import ui
+from ..subtrees.addon_common.common.blender import show_error_message
+
 
 from .polytrim_datastructure import InputPoint, SplineSegment, CurveNode
 

@@ -28,22 +28,22 @@ from mathutils.bvhtree import BVHTree
 from mathutils.geometry import intersect_point_line, intersect_line_plane
 from bpy_extras import view3d_utils
 
-
 #addon_common subtrees
-from ..subtrees.addon_common.common.rays import get_view_ray_data, ray_cast
 from ..subtrees.addon_common.common.blender import bversion
 from ..subtrees.addon_common.common.colors import get_random_color
 from ..subtrees.addon_common.common.utils import get_matrices
 from ..subtrees.addon_common.common.bezier import CubicBezier, CubicBezierSpline, CompositeSmoothCubicBezierSpline
 from ..subtrees.addon_common.common.shaders import circleShader
-from ..subtrees.addon_common.common.simplify import simplify_RDP, relax_vert_chain
 
 #bmesh_utilities subtrees
 from ..subtrees.bmesh_utilities.bmesh_utilities_common import grow_selection_to_find_face, flood_selection_faces, edge_loops_from_bmedges_old, edge_loops_from_bmedges
-from ..subtrees.bmesh_utilities.bmesh_utilities_common import flood_selection_by_verts, flood_selection_edge_loop, ensure_lookup, face_region_boundary_loops, bmesh_loose_parts_faces
+from ..subtrees.bmesh_utilities.bmesh_utilities_common import flood_selection_by_verts, flood_selection_edge_loop, ensure_lookup, face_region_boundary_loops
+from ..subtrees.bmesh_utilities.bmesh_utilities_segmentation import  bmesh_loose_parts_faces
 
 #adddon specific imports
-from ..cut_algorithms import cross_section_2seeds_ver1, path_between_2_points, path_between_2_points_clean, find_bmedges_crossing_plane
+from ..lib.cut_algorithms import cross_section_2seeds_ver1, path_between_2_points, path_between_2_points_clean, find_bmedges_crossing_plane
+from ..lib.simplify import simplify_RDP, relax_vert_chain
+from ..lib.rays import get_view_ray_data, ray_cast
 #from ..geodesic import GeoPath, geodesic_walk, continue_geodesic_walk, gradient_descent
 
 

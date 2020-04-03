@@ -8,9 +8,8 @@ import bpy
 import time
 import math
 
-from ..bmesh_fns import edge_loops_from_bmedges_old, ensure_lookup, new_bmesh_from_bmelements
-from ..common.utils import get_matrices
-from ..common.rays import get_view_ray_data, ray_cast, ray_cast_path, ray_cast_bvh
+
+
 
 from .polytrim_datastructure import InputNetwork, InputPoint, InputSegment, SplineSegment, CurveNode
 
@@ -22,12 +21,16 @@ from mathutils.bvhtree import BVHTree
 
 
 from ..subtrees.bmesh_utilities.bmesh_utilities_common import edge_loops_from_bmedges_old, flood_selection_by_verts, flood_selection_edge_loop, ensure_lookup
-
+from ..subtrees.bmesh_utilities.bmesh_utilities_common import edge_loops_from_bmedges_old, ensure_lookup, new_bmesh_from_bmelements
+from ..subtrees.addon_common.common.utils import get_matrices
 
 from ..subtrees.addon_common.common.maths import Point, Direction, XForm
 from ..subtrees.addon_common.common.bezier import CubicBezierSpline
-from ..subtrees.addon_common.common.simplify import simplify_RDP
-from ..geodesic import geodesic_walk
+from ..lib.rays import get_view_ray_data, ray_cast, ray_cast_path, ray_cast_bvh
+
+
+from ..lib.simplify import simplify_RDP
+from ..lib.geodesic import geodesic_walk
 
 class Polytrim_UI_Tools():
     '''
