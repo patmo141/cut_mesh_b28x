@@ -19,10 +19,14 @@ from bpy_extras import view3d_utils
 from mathutils import Vector, kdtree, Color
 from mathutils.geometry import intersect_point_line
 from mathutils.bvhtree import BVHTree
-from ..bmesh_fns import edge_loops_from_bmedges_old, flood_selection_by_verts, flood_selection_edge_loop, ensure_lookup
-from ..common.maths import Point, Direction, XForm
-from ..common.bezier import CubicBezierSpline
-from ..common.simplify import simplify_RDP
+
+
+from ..subtrees.bmesh_utilities.bmesh_utilities_common import edge_loops_from_bmedges_old, flood_selection_by_verts, flood_selection_edge_loop, ensure_lookup
+
+
+from ..subtrees.addon_common.common.maths import Point, Direction, XForm
+from ..subtrees.addon_common.common.bezier import CubicBezierSpline
+from ..subtrees.addon_common.common.simplify import simplify_RDP
 from ..geodesic import geodesic_walk
 
 class Polytrim_UI_Tools():

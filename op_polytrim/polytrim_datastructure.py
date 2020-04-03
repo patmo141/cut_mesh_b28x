@@ -11,31 +11,25 @@ Improved by using some PolyStrips concepts Jon Denning @CGCookie and Taylor Univ
 refreshed again as part of summer practicum by Micah Stewart Summer 2018, Taylor University + Impulse Dental Technologies LLC
 reworked again by Patrick Moore, Micah Stewart and Jon Denning Fall 2018 
 '''
+
+#python imports
 import time
 import math
 import random
+from concurrent.futures.thread import ThreadPoolExecutor
 
+
+#blender imporst
 import bpy
 import bmesh
 import bgl
-
-from collections import defaultdict
 from mathutils import Vector, Matrix, Color, kdtree
 from mathutils.bvhtree import BVHTree
 from mathutils.geometry import intersect_point_line, intersect_line_plane
 from bpy_extras import view3d_utils
 
 
-#TODO update to subtree tracking the best bmesh_fns
-from ..bmesh_fns import grow_selection_to_find_face, flood_selection_faces, edge_loops_from_bmedges_old, edge_loops_from_bmedges, flood_selection_by_verts, flood_selection_edge_loop, ensure_lookup
-from ..bmesh_fns import face_region_boundary_loops, bmesh_loose_parts_faces
-
-
-
-from ..cut_algorithms import cross_section_2seeds_ver1, path_between_2_points, path_between_2_points_clean, find_bmedges_crossing_plane
-#from ..geodesic import GeoPath, geodesic_walk, continue_geodesic_walk, gradient_descent
-
-
+#addon_common subtrees
 from ..subtrees.addon_common.common.rays import get_view_ray_data, ray_cast
 from ..subtrees.addon_common.common.blender import bversion
 from ..subtrees.addon_common.common.colors import get_random_color
@@ -44,8 +38,14 @@ from ..subtrees.addon_common.common.bezier import CubicBezier, CubicBezierSpline
 from ..subtrees.addon_common.common.shaders import circleShader
 from ..subtrees.addon_common.common.simplify import simplify_RDP, relax_vert_chain
 
+#bmesh_utilities subtrees
+from ..subtrees.bmesh_utilities.bmesh_utilities_common import grow_selection_to_find_face, flood_selection_faces, edge_loops_from_bmedges_old, edge_loops_from_bmedges
+from ..subtrees.bmesh_utilities.bmesh_utilities_common import flood_selection_by_verts, flood_selection_edge_loop, ensure_lookup, face_region_boundary_loops, bmesh_loose_parts_faces
 
-from concurrent.futures.thread import ThreadPoolExecutor
+#adddon specific imports
+from ..cut_algorithms import cross_section_2seeds_ver1, path_between_2_points, path_between_2_points_clean, find_bmedges_crossing_plane
+#from ..geodesic import GeoPath, geodesic_walk, continue_geodesic_walk, gradient_descent
+
 
 #helper function to split a face
 def split_face_by_verts(bme, f, ed_enter, ed_exit, bmvert_chain):
