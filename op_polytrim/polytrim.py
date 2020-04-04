@@ -11,8 +11,9 @@ from ..subtrees.addon_common.common.utils import get_settings
 
 #from ..subtrees.addon_common.common.ui import Drawing
 
-from .polytrim_ui_init       import Polytrim_UI_Init
-from .polytrim_states        import Polytrim_States
+
+from .polytrim_states        import Polytrim_States280
+from .polytrim_ui_init       import Polytrim_UI_Init280
 from .polytrim_ui_tools      import Polytrim_UI_Tools
 from .polytrim_ui_draw       import Polytrim_UI_Draw
 from .polytrim_datastructure import InputNetwork, NetworkCutter, SplineNetwork
@@ -20,7 +21,7 @@ from .polytrim_datastructure import InputNetwork, NetworkCutter, SplineNetwork
 
 
 #ModalOperator
-class CutMesh_Polytrim(Polytrim_States, Polytrim_UI_Init, Polytrim_UI_Tools, Polytrim_UI_Draw, CookieCutter):
+class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tools, Polytrim_UI_Draw, CookieCutter):
     ''' Cut Mesh Polytrim Modal Editor '''
     ''' Note: the functionality of this operator is split up over multiple base classes '''
 

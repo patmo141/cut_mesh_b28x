@@ -16,6 +16,62 @@ from ..subtrees.addon_common.common.blender import show_error_message
 from .polytrim_datastructure import InputPoint, SplineSegment, CurveNode
 
 
+class Polytrim_UI_Init280():
+#typically, we would definte these somewhere else
+    def tool_action(self):
+        print('tool action')
+        return
+    
+    def setup_ui(self):
+        
+        #go ahead and open these files
+        #addon_common.common.ui
+        #addon_common.cookiecutter.cookiecutter_ui
+        
+        #know that every CookieCutter instance has self.document upon startup
+        #most of our ui elements are going to be children of self.document.body
+        
+        #we generate our UI elements using the methods in ui.py
+        
+        #we need to read ui_core, particulalry UI_Element
+        
+        
+        
+        #collapsible, and framed_dialog
+        #first, know
+        
+        self.ui_main = ui.framed_dialog(label = 'ui.framed_dialog',
+                                          resiable = None,
+                                          resiable_x = True,
+                                          resizable_y=False, 
+                                          closeable=False, 
+                                          moveable=True, 
+                                          hide_on_close=False,
+                                          parent=self.document.body)
+        
+        # tools
+        ui_tools = ui.div(id="tools", parent=self.ui_main)
+        ui.button(label='ui.button', title = 'self.tool_action() method linked to button', parent=ui_tools, on_mouseclick=self.tool_action)    
+        
+        #create a collapsille container to hold a few variables
+        container = ui.collapsible('ui.collapse container', parent = self.ui_main)
+        
+        i1 = ui.labeled_input_text(label='Sui.labeled_input_text', 
+                              title='float property to BoundFLoat', 
+                              value= self.variable_1) 
+    
+        i2 = ui.labeled_input_text(label='ui.labled_input_text', 
+                              title='integer property to BoundInt', 
+                              value= self.variable_2)
+        
+        
+        i3 = ui.input_checkbox(
+                label='ui.input_checkbox',
+                title='True/False property to BoundBool')
+    
+        container.builder([i1, i2, i3])
+        
+        
 class Polytrim_UI_Init():
     def ui_setup(self):
         self.instructions = {
