@@ -77,7 +77,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         
     @CookieCutter.FSM_State('spline main')
     def spline_main(self):
-        self.cursor_modal_set('CROSSHAIR')
+        
         context = self.context
 
         mouse_just_stopped = self.actions.mousemove_prev and not self.actions.mousemove
@@ -85,6 +85,10 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             self.net_ui_context.update(self.actions.mouse)
             #TODO: Bring hover into NetworkUiContext
             self.hover_spline()
+            if self.net_ui_context.hovered_near[0] == 'POINT':
+                self.cursor_modal_set('HAND')
+            else:
+                self.cursor_modal_set('CROSSHAIR')
             #print(self.net_ui_context.hovered_near)
             #self.net_ui_context.inspect_print()
 
