@@ -3,20 +3,25 @@ Created on Oct 8, 2015
 
 @author: Patrick
 '''
+#python imports
 import math
-import bgl
 
+#Blender imports
+import bgl
+import gpu
+from gpu_extras.batch import batch_for_shader
 from bpy_extras import view3d_utils
 from mathutils import Vector, Matrix, Color
 
-#from .. import common_drawing
+#subtree imports
 from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
 from ..subtrees.addon_common.common.shaders import circleShader
 
+#addon imports
 from .polytrim_datastructure import InputPoint, CurveNode, SplineSegment
 
 
-# some useful colors
+# some useful colors  #TODO see colors.py
 clear       = (0.0, 0.0, 0.0, 0.0)
 red         = (1.0, 0.1, 0.1, 1.0)
 orange      = (1.0, 0.8, 0.2, 1.0)
@@ -97,6 +102,75 @@ def draw2d_polyline(points, color, thickness, stipple=False):
 
 
 
+class Polytrim_UI_Draw280():
+
+    ###################################################
+    # draw functions
+
+    points_shader = None
+    
+    #just attempt to draw the basic points for now
+    def create_points_batch(self):
+        vertices = []
+        
+         
+        for seg in self.spline_net.segments:
+             vertices += [(p[0], p[1], p[2]) for p in seg.draw_tessellation]
+         
+         
+        vertices += [(p.world_loc[0], p.world_loc[1], p.world_loc[2]) for p in self.spline_net.points]
+        
+    
+        self.points_shader = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
+        self.points_batch = batch_for_shader(self.points_shader, 'POINTS', {"pos":vertices})
+        
+          
+    @CookieCutter.Draw("post3d")
+    def draw_postview(self):
+        
+        
+        if not self.points_shader: return
+        
+        bgl.glDepthMask(bgl.GL_TRUE)
+        bgl.glPointSize(8)
+        bgl.glDepthFunc(bgl.GL_LEQUAL)
+        
+        self.points_shader.bind()
+        self.points_shader.uniform_float("color", (1,1,1,1))
+        self.points_batch.draw(self.points_shader)
+        
+        bgl.glDepthFunc(bgl.GL_LEQUAL)
+        bgl.glDepthMask(bgl.GL_TRUE)
+        bgl.glDepthRange(0, 1)
+        
+        #bgl.glDisable(bgl.GL_POINT_SMOOTH)
+        #bgl.glDisable(bgl.GL_POINTS)
+        bgl.glPointSize(1)
+    
+    
+
+    #@CookieCutter.Draw("post2d")
+    #def draw_postpixel(self):
+        
+        
+    #    region = bpy.context.region
+    #    rv3d = bpy.context.space_data.region_3d
+    #    dpi = bpy.context.preferences.system.dpi
+    #    blf.size(0, 20, dpi) #fond_id = 0
+    #    for i,pt in enumerate(self.b_pts):
+    #        if pt.label:
+    #            if self.selected == i:
+    #                color = (0,1,1,1)
+    #            elif self.hovered[1] == i:
+    #                color = (0,1,0,1)
+    #            else:
+    #                color = (1,0,0,1)
+                #bgl.glColor4f(*color)
+    #            vector2d = view3d_utils.location_3d_to_region_2d(region, rv3d, pt.location)
+    #            blf.position(0, vector2d[0], vector2d[1] + 5, 0)
+    #            blf.draw(0, pt.label) #font_id = 0
+                
+                
 class Polytrim_UI_Draw():
     @CookieCutter.Draw('post3d')
     def draw_postview(self):

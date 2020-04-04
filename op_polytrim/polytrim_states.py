@@ -37,7 +37,7 @@ these are the states and substates (tool states)
 '''
 
 
-class Polytrim_States280(): #(CookieCutter) <- May need to do it this way
+class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it this way
     # spline, seed selection
     
     #spline main
@@ -69,7 +69,12 @@ class Polytrim_States280(): #(CookieCutter) <- May need to do it this way
       
 
     ######################################################
-    # spline editing   
+    # spline editing
+    @CookieCutter.FSM_State('spline main', 'enter')
+    def spline_enter(self):
+        self.create_points_batch()
+        
+        
     @CookieCutter.FSM_State('spline main')
     def spline_main(self):
         self.cursor_modal_set('CROSSHAIR')
@@ -84,25 +89,26 @@ class Polytrim_States280(): #(CookieCutter) <- May need to do it this way
             #self.net_ui_context.inspect_print()
 
         if self.actions.pressed('select', unpress=False):
-            if self.spline_fsm.can_change('select'):
+            if self.spline_select_can_enter():
                 self.actions.unpress()
                 return 'spline select'
 
         if self.actions.pressed('connect', unpress=False):
-            if self.spline_fsm.can_change('connect'):
+            if self.spline_connect_can_enter():
                 self.actions.unpress()
                 return 'spline connect'
 
         if self.actions.pressed('add point', unpress=False):
             # first try to add a connected point
             # if that fails, try to add a disconnected point
-            if self.spline_fsm.can_change('add point'):
+            if self.spline_add_point_can_enter():
                 self.actions.unpress()
                 return 'add point'
-            elif self.spline_fsm.can_change('add point (disconnected)'):
+        
+            elif self.spline_add_point_disconnected_can_enter():
                 self.actions.unpress()
                 return 'add point (disconnected)'
-            elif self.spline_fsm.can_change('insert point'):
+            elif self.spline_insert_point_can_enter():
                 return 'insert point'
 
         if self.actions.pressed('sketch'):
@@ -421,7 +427,7 @@ class Polytrim_States280(): #(CookieCutter) <- May need to do it this way
         self.sketcher.reset()
 
 
-    @CookieCutter.FSM_State('main')
+    @CookieCutter.FSM_State('seed main')
     def modal_seed(self):
         self.cursor_modal_set('EYEDROPPER')
 
@@ -443,7 +449,7 @@ class Polytrim_States280(): #(CookieCutter) <- May need to do it this way
     ######################################################
     # segmentation state
 
-    @CookieCutter.FSM_State('main')
+    @CookieCutter.FSM_State('seg main')
     def modal_segmentation(self):
         self.cursor_modal_set('CROSSHAIR')
 
@@ -575,7 +581,7 @@ class Polytrim_States280(): #(CookieCutter) <- May need to do it this way
         self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
     
     
-    
+'''    
 class Polytrim_States():
     # spline, seed, and region are tools with their own states
     spline_fsm = FSM()
@@ -1235,3 +1241,5 @@ class Polytrim_States():
         self.brush.absorb_geom_geodesic(self.context, self.actions.mouse)
         self.paint_confirm_subtract()
         self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
+        
+'''

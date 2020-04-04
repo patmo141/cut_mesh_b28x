@@ -439,7 +439,7 @@ class NetworkCutter(object):
             self.cut_data.pop(seg, None)
                         
     def compute_cut_normal(self, seg):
-        surf_no = self.net_ui_context.imx.to_3x3() * seg.ip0.view.lerp(seg.ip1.view, 0.5)  #must be a better way.
+        surf_no = self.net_ui_context.imx.to_3x3() @ seg.ip0.view.lerp(seg.ip1.view, 0.5)  #must be a better way.
         e_vec = seg.ip1.local_loc - seg.ip0.local_loc
         #define
         cut_no = e_vec.cross(surf_no)
@@ -469,9 +469,9 @@ class NetworkCutter(object):
 
         
         if seg.ip1.view.dot(seg.ip0.view) < 0:
-            surf_no = self.net_ui_context.imx.to_3x3() * seg.ip0.view.lerp(-1 * seg.ip1.view, 0.5)
+            surf_no = self.net_ui_context.imx.to_3x3() @ seg.ip0.view.lerp(-1 * seg.ip1.view, 0.5)
         else:
-            surf_no = self.net_ui_context.imx.to_3x3() * seg.ip0.view.lerp(seg.ip1.view, 0.5)  #must be a better way.
+            surf_no = self.net_ui_context.imx.to_3x3() @ seg.ip0.view.lerp(seg.ip1.view, 0.5)  #must be a better way.
         
         
         e_vec = seg.ip1.local_loc - seg.ip0.local_loc  #edge vector
@@ -506,9 +506,9 @@ class NetworkCutter(object):
                 
                 if cross == None:
                     print('No CROSS PRODUCT')
-                    seg.path= [self.net_ui_context.mx * v for v in [seg.ip0.local_loc, seg.ip1.local_loc]]
+                    seg.path= [self.net_ui_context.mx @ v for v in [seg.ip0.local_loc, seg.ip1.local_loc]]
                 else:    
-                    seg.path = [self.net_ui_context.mx * v for v in [seg.ip0.local_loc, cross, seg.ip1.local_loc]] #TODO
+                    seg.path = [self.net_ui_context.mx @ v for v in [seg.ip0.local_loc, cross, seg.ip1.local_loc]] #TODO
                 cross_ed = ed
                 seg.needs_calculation = False
                 seg.calculation_complete = True
@@ -580,7 +580,7 @@ class NetworkCutter(object):
             if len(vs):
                 print('crossed %i faces' % len(faces_crossed))
                 seg.face_chain = faces_crossed
-                seg.path = [self.net_ui_context.mx * v for v in vs]
+                seg.path = [self.net_ui_context.mx @ v for v in vs]
                 seg.bad_segment = False
                 seg.needs_calculation = False
                 seg.calculation_complete = True
@@ -769,7 +769,7 @@ class NetworkCutter(object):
             #relaxed_boundary = relax_vert_chain(raw_boundary, in_place = False)
             #simple_path_inds = simplify_RDP(relaxed_boundary, .25)
             feature_inds = simplify_RDP(raw_boundary, .35)
-            simple_path = [self.net_ui_context.mx * raw_boundary[i] for i in feature_inds]
+            simple_path = [self.net_ui_context.mx @ raw_boundary[i] for i in feature_inds]
             
             
             new_points = []
@@ -779,10 +779,10 @@ class NetworkCutter(object):
             for pt in simple_path[0:len(simple_path)-1]:
                 delta = Vector((random.random(), random.random(), random.random()))
                 delta.normalize()
-                loc, no, face_ind, d =  self.net_ui_context.bvh.find_nearest(self.net_ui_context.imx * (pt + .1 * delta))
+                loc, no, face_ind, d =  self.net_ui_context.bvh.find_nearest(self.net_ui_context.imx @ (pt + .1 * delta))
                 if face_ind == None: continue
                 #TODO store a view dictionary from the brush
-                new_pnt = spline_net.create_point(self.net_ui_context.mx * loc, loc, self.net_ui_context.mx_norm * no, face_ind)
+                new_pnt = spline_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, face_ind)
                 #patch.ip_points.append(new_pnt)
                 #new_pnt = self.spline_net.create_point(loc3d, loc, view_vector, face_ind)
                 new_points += [new_pnt]
@@ -880,7 +880,7 @@ class NetworkCutter(object):
                 path = [self.input_net.bme.verts[ind].co.copy() for ind in v_loop]
                 path_inds = simplify_RDP(path, .35)
                 
-                simple_path = [self.net_ui_context.mx * path[i] for i in path_inds]
+                simple_path = [self.net_ui_context.mx @ path[i] for i in path_inds]
                 
                 start_node = min(spline_endpoints, key = lambda x: spline_dist(x, simple_path[0]))
                 end_node = min(spline_endpoints, key = lambda x: spline_dist(x, simple_path[-1]))
@@ -904,10 +904,10 @@ class NetworkCutter(object):
                     for pt in simple_path[1:len(simple_path)-1]:
                         delta = Vector((random.random(), random.random(), random.random()))
                         delta.normalize()
-                        loc, no, face_ind, d =  self.net_ui_context.bvh.find_nearest(self.net_ui_context.imx * (pt + .1 * delta))
+                        loc, no, face_ind, d =  self.net_ui_context.bvh.find_nearest(self.net_ui_context.imx @ (pt + .1 * delta))
                         if face_ind == None: continue
                         #TODO store a view dictionary from the brush
-                        new_pnt = spline_net.create_point(self.net_ui_context.mx * loc, loc, self.net_ui_context.mx_norm * no, face_ind)
+                        new_pnt = spline_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, face_ind)
                         #patch.ip_points.append(new_pnt)
                         #new_pnt = self.spline_net.create_point(loc3d, loc, view_vector, face_ind)
                         new_points += [new_pnt]
@@ -1024,7 +1024,7 @@ class NetworkCutter(object):
             raw_boundary = patch.perimeter_path
         
             simple_path_inds = simplify_RDP(raw_boundary, .4)
-            simple_path = [self.net_ui_context.mx * raw_boundary[i] for i in simple_path_inds]
+            simple_path = [self.net_ui_context.mx @ raw_boundary[i] for i in simple_path_inds]
             
      
             #self.simple_paths += [simple_path]
@@ -1040,13 +1040,13 @@ class NetworkCutter(object):
                 delta = Vector((random.random(), random.random(), random.random()))
                 delta.normalize()
                 
-                loc, no, face_ind, d =  self.net_ui_context.bvh.find_nearest(self.net_ui_context.imx * (pt + .1 * delta))
+                loc, no, face_ind, d =  self.net_ui_context.bvh.find_nearest(self.net_ui_context.imx @ (pt + .1 * delta))
                 if face_ind != None:
-                    new_pnt = self.input_net.create_point(self.net_ui_context.mx * loc, loc, self.net_ui_context.mx_norm * no, face_ind)
+                    new_pnt = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, face_ind)
                     patch.ip_points.append(new_pnt)
                 if face_ind == None: continue
                 #TODO store a view dictionary from the brush
-                new_pnt = self.input_net.create_point(self.net_ui_context.mx * loc, loc, self.net_ui_context.mx_norm * no, face_ind)
+                new_pnt = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, face_ind)
                 #patch.ip_points.append(new_pnt)
                 #new_pnt = self.spline_net.create_point(loc3d, loc, view_vector, face_ind)
                 new_points += [new_pnt]
@@ -3869,9 +3869,9 @@ class SplineSegment(object): #NetworkSegment
         for ind in range(1,len(self.ip_tesselation)-1):
             pt = self.ip_tesselation[ind]
             view = self.ip_views[ind]
-            loc, no, face_ind, d = net_ui_context.bvh.find_nearest(imx * pt)
+            loc, no, face_ind, d = net_ui_context.bvh.find_nearest(imx @ pt)
             f = input_network.bme.faces[face_ind]
-            new_pnt = InputPoint(mx * loc, loc, view, face_ind, seed_geom = f, bmface = f)
+            new_pnt = InputPoint(mx @ loc, loc, view, face_ind, seed_geom = f, bmface = f)
             input_network.points.append(new_pnt)
             self.input_points += [new_pnt]
             

@@ -8,20 +8,25 @@ import bpy
 from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
 from ..subtrees.addon_common.common import ui
 from ..subtrees.addon_common.common.utils import get_settings
-
+from ..subtrees.addon_common.common.boundvar import BoundInt, BoundFloat, BoundBool
 #from ..subtrees.addon_common.common.ui import Drawing
 
 
 from .polytrim_states        import Polytrim_States280
 from .polytrim_ui_init       import Polytrim_UI_Init280
 from .polytrim_ui_tools      import Polytrim_UI_Tools
-from .polytrim_ui_draw       import Polytrim_UI_Draw
+from .polytrim_ui_draw       import Polytrim_UI_Draw280
 from .polytrim_datastructure import InputNetwork, NetworkCutter, SplineNetwork
 
 
 
+#some settings container
+options = {}
+options["variable_1"] = 5.0
+options["variable_3"] = True
+
 #ModalOperator
-class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tools, Polytrim_UI_Draw, CookieCutter):
+class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tools, Polytrim_UI_Draw280):
     ''' Cut Mesh Polytrim Modal Editor '''
     ''' Note: the functionality of this operator is split up over multiple base classes '''
 
@@ -33,6 +38,16 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
     bl_region_type = 'TOOLS'
     bl_options = {'REGISTER','UNDO'}
 
+    #for this, checkout "polystrips_props.py'
+    @property
+    def variable_2_gs(self):
+        return getattr(self, '_var_cut_count_value', 0)
+    @variable_2_gs.setter
+    def variable_2_gs(self, v):
+        if self.variable_2 == v: return
+        self.variable_2 = v
+        
+        
     default_keymap = {
         # key: a human-readable label
         # val: a str or a set of strings representing the user action
@@ -65,8 +80,8 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
             #showErrorMessage('Must select a mesh object')
             return False
 
-        if context.object.hide:
-            return False
+        #if context.object.hide:
+        #    return False
 
         return True
 
@@ -81,11 +96,18 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.cursor_modal_set('CROSSHAIR')
 
         #self.drawing = Drawing.get_instance()
-        self.drawing.set_region(bpy.context.region, bpy.context.space_data.region_3d, bpy.context.window)
+        #self.drawing.set_region(bpy.context.region, bpy.context.space_data.region_3d, bpy.context.window)?
         self.mode_pos        = (0, 0)
         self.cur_pos         = (0, 0)
         self.mode_radius     = 0
         self.action_center   = (0, 0)
+        
+        #SAMPLE VARIABLES FOR UI
+        self.variable_1 = BoundFloat('''options['variable_1']''', min_value =0.5, max_value = 15.5)
+        self.variable_2 = BoundInt('''self.variable_2_gs''',  min_value = 0, max_value = 10)
+        self.variable_3 = BoundBool('''options['variable_3']''')
+        
+        
 
         prefs = get_settings()
         
@@ -107,9 +129,10 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.patch_boundary_fit_epsilon =  prefs.patch_boundary_fit_epsilon
         self.spline_tessellation_epsilon = prefs.spline_tessellation_epsilon
 
-        self.ui_setup()
-        self.fsm_setup()
-        self.window_state_overwrite(show_only_render=False, hide_manipulator=True)
+        
+        self.setup_ui()
+        #self.fsm_setup()
+        #self.window_state_overwrite(show_only_render=False, hide_manipulator=True)
 
     def end(self):
         ''' Called when tool is ending modal '''

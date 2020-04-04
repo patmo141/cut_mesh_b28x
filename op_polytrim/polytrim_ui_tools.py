@@ -98,7 +98,7 @@ class Polytrim_UI_Tools():
                         #loc, no, face_ind =  ray_cast(self.net_ui_context.ob,self.net_ui_context.imx, ray_origin, ray_target, None)  #intersects that ray with the geometry
                         loc, no, face_ind =  ray_cast_bvh(self.net_ui_context.bvh,self.net_ui_context.imx, ray_origin, ray_target, None)
                         if face_ind != None:
-                            new_pnt = self.input_net.create_point(self.net_ui_context.mx * loc, loc, view_vector, face_ind)
+                            new_pnt = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
                     if prev_pnt:
                         print(prev_pnt)
                         seg = InputSegment(prev_pnt,new_pnt)
@@ -120,7 +120,7 @@ class Polytrim_UI_Tools():
                         #loc, no, face_ind =  ray_cast(self.net_ui_context.ob,self.net_ui_context.imx, ray_origin, ray_target, None)  #intersects that ray with the geometry
                     loc, no, face_ind =  ray_cast_bvh(self.net_ui_context.bvh,self.net_ui_context.imx, ray_origin, ray_target, None)
                     if face_ind != None:
-                            sketch_3d += [self.net_ui_context.mx * loc]
+                            sketch_3d += [self.net_ui_context.mx @ loc]
                             other_data += [(loc, view_vector, face_ind)]
 
                 feature_inds = simplify_RDP(sketch_3d, .25)  #TODO, sketch threshold
@@ -165,7 +165,7 @@ class Polytrim_UI_Tools():
                     #loc, no, face_ind =  ray_cast(self.net_ui_context.ob,self.net_ui_context.imx, ray_origin, ray_target, None)  #intersects that ray with the geometry
                 loc, no, face_ind =  ray_cast_bvh(self.net_ui_context.bvh,self.net_ui_context.imx, ray_origin, ray_target, None)
                 if face_ind != None:
-                    stroke3d += [self.net_ui_context.mx * loc]
+                    stroke3d += [self.net_ui_context.mx @ loc]
                     
             #print(stroke3d)
             cbs = CubicBezierSpline.create_from_points([stroke3d], .05)
@@ -341,7 +341,7 @@ class Polytrim_UI_Tools():
                     ed, world_loc = n[1]
                     face = ed.link_faces[0]
                     
-                    self.grab_point.set_values(world_loc, imx * world_loc, d["view"], face.index)
+                    self.grab_point.set_values(world_loc, imx @ world_loc, d["view"], face.index)
                     self.grab_point.bmface = face
                     self.grab_point.seed_geom = ed  #we have ensure it's not a non manifold
                     self.grab_point.bmedge = ed #unused, but will in future
@@ -444,20 +444,20 @@ class Polytrim_UI_Tools():
             
             #### I DONT KNOW THAT THIS NEEDS TO GO IN NET UI CONTEXT ####
             self.ob = context.object
-            self.ob.hide = False
-            context.scene.render.engine = 'BLENDER_RENDER'
-            context.space_data.show_manipulator = False
-            context.space_data.viewport_shade = 'SOLID'  #TODO until smarter drawing
-            context.space_data.show_textured_solid = True #TODO until smarter patch drawing
+            self.ob.hide_viewport = False
+            #context.scene.render.engine = 'BLENDER_RENDER'
+            #context.space_data.show_manipulator = False
+            #context.space_data.viewport_shade = 'SOLID'  #TODO until smarter drawing
+            #context.space_data.show_textured_solid = True #TODO until smarter patch drawing
         
             if "patches" not in bpy.data.materials:
                 mat = bpy.data.materials.new("patches")
-                mat.use_shadeless = True
-                mat.use_vertex_color_paint = True
+                #mat.use_shadeless = True
+               #mat.use_vertex_color_paint = True
             else:
                 mat = bpy.data.materials.get("patches")
-                mat.use_shadeless = True
-                mat.use_vertex_color_paint = True
+                #mat.use_shadeless = True
+                #mat.use_vertex_color_paint = True
         
             if "patches" not in self.ob.data.materials:
                 self.ob.data.materials.append(mat)
@@ -530,11 +530,11 @@ class Polytrim_UI_Tools():
         is_hovering_mesh = property(is_hovering_mesh)
 
         def closest_world_loc(self, loc):
-            local_loc = self.imx * loc
+            local_loc = self.imx @ loc
             loc, no, face_ind, d =  self.bvh.find_nearest(local_loc)
             
             if loc:
-                return self.mx * loc
+                return self.mx @ loc
             else:
                 return None
             
@@ -544,7 +544,7 @@ class Polytrim_UI_Tools():
             non_man_ed_loops = edge_loops_from_bmedges_old(self.bme, non_man_eds)
             non_man_points = []
             for loop in non_man_ed_loops:
-                non_man_points += [self.ob.matrix_world * self.bme.verts[ind].co for ind in loop]
+                non_man_points += [self.ob.matrix_world @ self.bme.verts[ind].co for ind in loop]
                 self.non_man_bmverts += [self.bme.verts[ind].index for ind in loop]
             if non_man_points:
                 self.kd = kdtree.KDTree(len(non_man_points))
@@ -567,7 +567,7 @@ class Polytrim_UI_Tools():
             loc, no, face_ind = ray_cast(self.ob, self.imx, ray_origin, ray_target, None)
             if face_ind == -1: self.hovered_mesh = {}
             else:
-                self.hovered_mesh["world loc"] = self.mx * loc
+                self.hovered_mesh["world loc"] = self.mx @ loc
                 self.hovered_mesh["local loc"] = loc
                 self.hovered_mesh["normal"] = no
                 self.hovered_mesh["face index"] = face_ind
@@ -579,7 +579,7 @@ class Polytrim_UI_Tools():
             loc, no, face_ind = ray_cast_bvh(self.bvh, self.imx, ray_origin, ray_target, None)
             if face_ind == None: self.hovered_mesh = {}
             else:
-                self.hovered_mesh["world loc"] = self.mx * loc
+                self.hovered_mesh["world loc"] = self.mx @ loc
                 self.hovered_mesh["local loc"] = loc
                 self.hovered_mesh["normal"] = no
                 self.hovered_mesh["face index"] = face_ind
@@ -590,7 +590,7 @@ class Polytrim_UI_Tools():
             finds nonman edges and verts nearby to cursor location
             '''
             if self.has_non_man and self.hovered_mesh:
-                co3d, index, dist = self.kd.find(self.mx * self.hovered_mesh["local loc"])
+                co3d, index, dist = self.kd.find(self.mx @ self.hovered_mesh["local loc"])
 
                 #get the actual non man vert from original list
                 close_bmvert = self.bme.verts[self.non_man_bmverts[index]] #stupid mapping, unreadable, terrible, fix this, because can't keep a list of actual bmverts
@@ -611,9 +611,9 @@ class Polytrim_UI_Tools():
                     loc3d_reg2D = view3d_utils.location_3d_to_region_2d
                     mouse_v = Vector(self.mouse_loc)
 
-                    screen_0 = loc3d_reg2D(region, rv3d, self.mx * inter_0)
-                    screen_1 = loc3d_reg2D(region, rv3d, self.mx * inter_1)
-                    screen_v = loc3d_reg2D(region, rv3d, self.mx * b)
+                    screen_0 = loc3d_reg2D(region, rv3d, self.mx @ inter_0)
+                    screen_1 = loc3d_reg2D(region, rv3d, self.mx @ inter_1)
+                    screen_v = loc3d_reg2D(region, rv3d, self.mx @ b)
 
                     if screen_0 and screen_1 and screen_v:
                         screen_d0 = (mouse_v - screen_0).length
@@ -622,10 +622,10 @@ class Polytrim_UI_Tools():
 
                         #TODO, decid how to handle when very very close to vertcies
                         if 0 < d0 <= 1 and screen_d0 < 20:
-                            self.hovered_near = ['NON_MAN_ED', (close_eds[0], self.mx*inter_0)]
+                            self.hovered_near = ['NON_MAN_ED', (close_eds[0], self.mx @ inter_0)]
                             return
                         elif 0 < d1 <= 1 and screen_d1 < 20:
-                            self.hovered_near = ['NON_MAN_ED', (close_eds[1], self.mx*inter_1)]
+                            self.hovered_near = ['NON_MAN_ED', (close_eds[1], self.mx @ inter_1)]
                             return
                 
                         else:
@@ -666,7 +666,7 @@ class Polytrim_UI_Tools():
             bmed, wrld_loc = self.net_ui_context.hovered_near[1] # hovered_near[1] is tuple (BMesh Element, location?)
             ip1 = self.closest_endpoint(wrld_loc)
 
-            self.net_ui_context.selected = self.input_net.create_point(wrld_loc, self.net_ui_context.imx * wrld_loc, view_vector, bmed.link_faces[0].index)
+            self.net_ui_context.selected = self.input_net.create_point(wrld_loc, self.net_ui_context.imx @ wrld_loc, view_vector, bmed.link_faces[0].index)
             self.net_ui_context.selected.seed_geom = bmed
             self.net_ui_context.selected.bmedge = bmed  #UNUSED BUT PREPARING FOR FUTURE
 
@@ -679,18 +679,18 @@ class Polytrim_UI_Tools():
         #Add a New Point at end
         elif (self.net_ui_context.hovered_near[0] == None) and (self.net_ui_context.snap_element == None):  #adding in a new point at end, may need to specify closest unlinked vs append and do some previs
             print("Here 11")
-            closest_endpoint = self.closest_endpoint(self.net_ui_context.mx * loc)
-            self.net_ui_context.selected = self.input_net.create_point(self.net_ui_context.mx * loc, loc, view_vector, face_ind)
+            closest_endpoint = self.closest_endpoint(self.net_ui_context.mx @ loc)
+            self.net_ui_context.selected = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
             print('create new point')
             
             if len(self.spline_net.points):
                 last_node = self.spline_net.points[-1]
-                new_node = self.spline_net.create_point(self.net_ui_context.mx * loc, loc, view_vector, face_ind)
+                new_node = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
                 self.spline_net.connect_points(new_node, last_node)
                 new_node.update_splines()
                 last_node.update_splines()  #this is going to update the spline twice?
             else:
-                new_node = self.spline_net.create_point(self.net_ui_context.mx * loc, loc, view_vector, face_ind)
+                new_node = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
                    
             if closest_endpoint and connect:
                 self.input_net.connect_points(self.net_ui_context.selected, closest_endpoint)
@@ -716,7 +716,7 @@ class Polytrim_UI_Tools():
             self.net_ui_context.selected = self.net_ui_context.hovered_near[1]
 
         elif self.net_ui_context.hovered_near[0] == 'EDGE':  #TODO, actually make InputSegment as hovered_near
-            point = self.input_net.create_point(self.net_ui_context.mx * loc, loc, view_vector, face_ind)
+            point = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
             old_seg = self.net_ui_context.hovered_near[1]
             self.input_net.insert_point(point, old_seg)
             self.net_ui_context.selected = point
@@ -749,11 +749,11 @@ class Polytrim_UI_Tools():
         #add an input node on non manifold edge of mesh
         if self.net_ui_context.hovered_near[0] and 'NON_MAN' in self.net_ui_context.hovered_near[0]:
             bmed, wrld_loc = self.net_ui_context.hovered_near[1]
-            p = self.spline_net.create_point(wrld_loc,imx * wrld_loc, view_vector, bmed.link_faces[0].index)
+            p = self.spline_net.create_point(wrld_loc,imx @ wrld_loc, view_vector, bmed.link_faces[0].index)
             p.seed_geom = bmed
             p.bmedge = bmed #UNUSED, but preparing for future
         else:
-            p = self.spline_net.create_point(mx * loc, loc, view_vector, face_ind)
+            p = self.spline_net.create_point(mx @ loc, loc, view_vector, face_ind)
 
         return p
     
@@ -766,7 +766,7 @@ class Polytrim_UI_Tools():
         view_vector, ray_origin, ray_target = get_view_ray_data(self.context, p2d)
     
         
-        p = self.spline_net.create_point(mx * loc, loc, view_vector, face_ind)
+        p = self.spline_net.create_point(mx @ loc, loc, view_vector, face_ind)
          
         #place holder for later hovering the tessellated line segments    
         #old_discrete_seg = self.net_ui_context.hovered_near[1]
@@ -793,7 +793,7 @@ class Polytrim_UI_Tools():
         mx,imx = self.net_ui_context.mx,self.net_ui_context.imx
         itmx = imx.transposed()
         loc, no, face_ind = ray_cast_bvh(self.net_ui_context.bvh, imx, ray_origin, ray_target)
-        return (mx * loc if loc and in_world else loc, itmx * no if no and in_world else no, face_ind)
+        return (mx @ loc if loc and in_world else loc, itmx @ no if no and in_world else no, face_ind)
 
     def ray_cast_source_hit(self, p2d):
         return self.ray_cast_source(p2d, in_world=False)[0] != None
@@ -818,7 +818,7 @@ class Polytrim_UI_Tools():
             bmed, wrld_loc = self.net_ui_context.hovered_near[1] # hovered_near[1] is tuple (BMesh Element, location?)
             ip1 = self.closest_spline_endpoint(wrld_loc)
 
-            self.net_ui_context.selected = self.spline_net.create_point(wrld_loc, self.net_ui_context.imx * wrld_loc, view_vector, bmed.link_faces[0].index)
+            self.net_ui_context.selected = self.spline_net.create_point(wrld_loc, self.net_ui_context.imx @ wrld_loc, view_vector, bmed.link_faces[0].index)
             self.net_ui_context.selected.seed_geom = bmed
             self.net_ui_context.selected.bmedge = bmed  #UNUSED, but preparing for future
 
@@ -834,8 +834,8 @@ class Polytrim_UI_Tools():
         #Add a New Point at end free chains
         elif (self.net_ui_context.hovered_near[0] == None) and (self.net_ui_context.snap_element == None):  #adding in a new point at end, may need to specify closest unlinked vs append and do some previs
             
-            closest_endpoint = self.closest_spline_endpoint(self.net_ui_context.mx * loc)
-            self.net_ui_context.selected = self.spline_net.create_point(self.net_ui_context.mx * loc, loc, view_vector, face_ind)
+            closest_endpoint = self.closest_spline_endpoint(self.net_ui_context.mx @ loc)
+            self.net_ui_context.selected = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
             print('create new point')
                 
             if closest_endpoint and connect:
@@ -860,7 +860,7 @@ class Polytrim_UI_Tools():
             self.net_ui_context.selected = self.net_ui_context.hovered_near[1]
 
         elif self.net_ui_context.hovered_near[0] == 'EDGE':  #TODO, actually make InputSegment as hovered_near
-            point = self.spline_net.create_point(self.net_ui_context.mx * loc, loc, view_vector, face_ind)
+            point = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
             old_seg = self.net_ui_context.hovered_near[1]
             self.spline_net.insert_point(point, old_seg)
             old_seg.clear_input_net_references(self.input_net)
@@ -1186,7 +1186,7 @@ class Polytrim_UI_Tools():
                 print('removing brush geom from patch')
                 patch.patch_faces.difference_update(self.brush.geom_accum)
                 if patch.validate_seed():
-                    patch.world_loc = self.net_ui_context.mx * patch.local_loc
+                    patch.world_loc = self.net_ui_context.mx @ patch.local_loc
                 patch.paint_modified = True
                 patch.un_color_patch()
                 patch.color_patch()
@@ -1607,7 +1607,7 @@ class Polytrim_UI_Tools():
         if face_ind == -1 or face_ind == None: 
             self.net_ui_context.closest_ep = None
             return
-        else: self.net_ui_context.closest_ep = self.closest_endpoint(mx * loc)
+        else: self.net_ui_context.closest_ep = self.closest_endpoint(mx @ loc)
 
         #find length between vertex and mouse
         def dist(v):
@@ -1621,7 +1621,7 @@ class Polytrim_UI_Tools():
         def dist3d(v3):
             if v3 == None:
                 return 100000000
-            delt = v3 - self.net_ui_context.ob.matrix_world * loc
+            delt = v3 - self.net_ui_context.ob.matrix_world @ loc
             return delt.length
 
         #closest_3d_loc = min(self.input_net.world_locs, key = dist3d)
@@ -1668,7 +1668,7 @@ class Polytrim_UI_Tools():
         distance_map = {}
         for seg in self.input_net.segments:  #TODO, may need to decide some better naming and better heirarchy
   
-            close_loc, close_d = self.closest_point_3d_linear(seg, self.net_ui_context.ob.matrix_world * loc)
+            close_loc, close_d = self.closest_point_3d_linear(seg, self.net_ui_context.ob.matrix_world @ loc)
             if close_loc  == None:
                 distance_map[seg] = 10000000
                 continue
@@ -1727,7 +1727,7 @@ class Polytrim_UI_Tools():
         # bail if we did not hit the source
         if face_ind == -1 or face_ind == None: return
 
-        loc = mx * loc      # transform loc to world
+        loc = mx @ loc      # transform loc to world
         self.net_ui_context.closest_ep = self.closest_spline_endpoint(loc)
 
         # find length between vertex and mouse
@@ -1816,7 +1816,7 @@ class Polytrim_UI_Tools():
             return
 
         #find if we hit a patch
-        patch = self.network_cutter.find_patch_post_cut(face_ind, mx * loc, loc)
+        patch = self.network_cutter.find_patch_post_cut(face_ind, mx @ loc, loc)
         
         if patch != None:
             self.net_ui_context.hovered_near = ['PATCH', patch]

@@ -36,7 +36,7 @@ def ray_cast(ob, imx, ray_origin, ray_target, also_do_this):
     cast ray from to view to specified target on object. 
     '''
     if bversion() < '002.077.000':
-        loc, no, face_ind = ob.ray_cast(imx * ray_origin, imx * ray_target)
+        loc, no, face_ind = ob.ray_cast(imx @ ray_origin, imx @ ray_target)
         if face_ind == -1:
             if also_do_this:
                 also_do_this()
@@ -44,7 +44,7 @@ def ray_cast(ob, imx, ray_origin, ray_target, also_do_this):
             else:
                 pass
     else:
-        res, loc, no, face_ind = ob.ray_cast(imx * ray_origin, imx * ray_target - imx * ray_origin)
+        res, loc, no, face_ind = ob.ray_cast(imx @ ray_origin, imx @ ray_target - imx @ ray_origin)
         if not res:
             if also_do_this:
                 also_do_this()
@@ -62,7 +62,7 @@ def ray_cast_bvh(bvh, imx, ray_origin, ray_target, also_do_this=None):
         print('NO GOING BACK TO 2.77')
         return None, None, None
     else:
-        loc, no, face_ind, d = bvh.ray_cast(imx * ray_origin, imx * ray_target - imx * ray_origin)
+        loc, no, face_ind, d = bvh.ray_cast(imx @ ray_origin, imx @ ray_target - imx @ ray_origin)
         if loc == None:
             if also_do_this:
                 also_do_this()
@@ -98,8 +98,8 @@ def ray_cast_region2d(region, rv3d, screen_coord, ob, settings):
     
     #TODO: make a max ray depth or pull this depth from clip depth
     
-    ray_start_local  = imx * ray_origin
-    ray_target_local = imx * ray_target
+    ray_start_local  = imx @ ray_origin
+    ray_target_local = imx @ ray_target
     
     if settings.debug > 3:
         print('ray_persp  = ' + str(rv3d.is_perspective))
@@ -136,15 +136,15 @@ def ray_cast_path(context, ob, screen_coords):
     
 
     if bversion() < '002.077.00':
-        hits = [ob.ray_cast(imx * ray_o, imx * ray_v) for ray_o,ray_v in rays]
+        hits = [ob.ray_cast(imx @ ray_o, imx @ ray_v) for ray_o,ray_v in rays]
     else:
-        hits = [ob.ray_cast(imx * ray_o, imx * ray_v - imx * ray_o) for ray_o,ray_v in rays]
+        hits = [ob.ray_cast(imx @ ray_o, imx @ ray_v - imx @ ray_o) for ray_o,ray_v in rays]
         
         
     if bversion() <= '002.076.000':
-        world_coords = [mx*co for co,no,face in hits if face != -1]
+        world_coords = [mx@co for co,no,face in hits if face != -1]
     else:
-        world_coords = [mx*co for ok,co,no,face in hits if ok]
+        world_coords = [mx@co for ok,co,no,face in hits if ok]
 
     return world_coords
 
@@ -170,7 +170,7 @@ def ray_cast_stroke(context, ob, stroke):
     bver = '%03d.%03d.%03d' % (bpy.app.version[0],bpy.app.version[1],bpy.app.version[2])
     if (bver < '002.072.000') and not rv3d.is_perspective: mult *= -1
     
-    sten = [(imx*(o-d*back*mult), imx*(o+d*mult)) for o,d in rays]
+    sten = [(imx@(o-d*back*mult), imx@(o+d*mult)) for o,d in rays]
     
     if bver < '002.077.00':
         hits = [ob.ray_cast(st,st+(en-st)*1000) for st,en in sten]
@@ -178,7 +178,7 @@ def ray_cast_stroke(context, ob, stroke):
         hits = [ob.ray_cast(st,(en-st)) for st,en in sten]
     
     
-    world_stroke = [(mx*hit[0],stroke[i][1])  for i,hit in enumerate(hits) if hit[2] != -1]
+    world_stroke = [(mx@hit[0],stroke[i][1])  for i,hit in enumerate(hits) if hit[2] != -1]
     
     return world_stroke
 
@@ -187,18 +187,18 @@ def ray_cast_visible(verts, ob, rv3d):
     returns list of Boolean values indicating whether the corresponding vert
     is visible (not occluded by object) in region associated with rv3d
     '''
-    view_dir = (rv3d.view_rotation * Vector((0,0,1))).normalized()
+    view_dir = (rv3d.view_rotation @ Vector((0,0,1))).normalized()
     imx = ob.matrix_world.inverted()
     
     if rv3d.is_perspective:
         eyeloc = rv3d.view_location + rv3d.view_distance*view_dir
         #eyeloc = Vector(rv3d.view_matrix.inverted().col[3][:3]) #this is brilliant, thanks Gert
-        eyeloc_local = imx*eyeloc
+        eyeloc_local = imx@eyeloc
         source = [eyeloc_local for vert in verts]
-        target = [imx*(vert+0.01*view_dir) for vert in verts]
+        target = [imx@(vert+0.01*view_dir) for vert in verts]
     else:
-        source = [imx*(vert+100*view_dir) for vert in verts]
-        target = [imx*(vert+0.01*view_dir) for vert in verts]
+        source = [imx@(vert+100*view_dir) for vert in verts]
+        target = [imx@(vert+0.01*view_dir) for vert in verts]
     
     if bversion() < '002.077.00':
         return [ob.ray_cast(s,t)[2]==-1 for s,t in zip(source,target)]
@@ -233,8 +233,8 @@ def ray_cast_world_size(region, rv3d, screen_coord, screen_size, ob, settings):
     ray_origin,ray_target = get_ray_origin_target(region, rv3d, screen_coord, ob)
     ray_direction         = (ray_target - ray_origin).normalized()
     
-    ray_start_local  = imx * ray_origin
-    ray_target_local = imx * ray_target
+    ray_start_local  = imx @ ray_origin
+    ray_target_local = imx @ ray_target
     
     if bversion() < '002.077.000':
         pt_local,no,idx  = ob.ray_cast(ray_start_local, ray_target_local)
@@ -243,13 +243,13 @@ def ray_cast_world_size(region, rv3d, screen_coord, screen_size, ob, settings):
     
     if idx == -1: return float('inf')
     
-    pt = mx * pt_local
+    pt = mx @ pt_local
     
     screen_coord_offset = (screen_coord[0]+screen_size, screen_coord[1])
     ray_origin_offset,ray_target_offset = get_ray_origin_target(region, rv3d, screen_coord_offset, ob)
     ray_direction_offset = (ray_target_offset - ray_origin_offset).normalized()
     
-    d = get_ray_plane_intersection(ray_origin_offset, ray_direction_offset, pt, (rv3d.view_rotation*Vector((0,0,-1))).normalized() )
+    d = get_ray_plane_intersection(ray_origin_offset, ray_direction_offset, pt, (rv3d.view_rotation@Vector((0,0,-1))).normalized() )
     pt_offset = ray_origin_offset + ray_direction_offset * d
     
     return (pt-pt_offset).length
@@ -270,7 +270,7 @@ def get_ray_origin(ray_origin, ray_direction, ob):
     if abs(ray_direction.x)>0.0001: planes += [(bm,x), (bM,-x)]
     if abs(ray_direction.y)>0.0001: planes += [(bm,y), (bM,-y)]
     if abs(ray_direction.z)>0.0001: planes += [(bm,z), (bM,-z)]
-    dists = [get_ray_plane_intersection(ray_origin,ray_direction,mx*p0,q*no) for p0,no in planes]
+    dists = [get_ray_plane_intersection(ray_origin,ray_direction,mx@p0,q@no) for p0,no in planes]
 
     return ray_origin + ray_direction * min(dists)
 

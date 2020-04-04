@@ -17,7 +17,7 @@ from .polytrim_datastructure import InputPoint, SplineSegment, CurveNode
 
 
 class Polytrim_UI_Init280():
-#typically, we would definte these somewhere else
+
     def tool_action(self):
         print('tool action')
         return
