@@ -20,7 +20,7 @@ class Polytrim_UI_Init280(CookieCutter):
     def tool_action(self):
         print('tool action')
         return
-    
+
     def setup_ui(self):
         
         #go ahead and open these files

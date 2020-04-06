@@ -16,7 +16,7 @@ from mathutils import Vector, Matrix, Color
 #subtree imports
 from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
 from ..subtrees.addon_common.common.shaders import circleShader
-
+from ..subtrees.addon_common.common.maths import matrix_normal, Direction
 #addon imports
 from .polytrim_datastructure import InputPoint, CurveNode, SplineSegment
 
@@ -125,29 +125,61 @@ class Polytrim_UI_Draw280():
         self.points_batch = batch_for_shader(self.points_shader, 'POINTS', {"pos":vertices})
         
           
-    @CookieCutter.Draw("post3d")
-    def draw_postview(self):
+    #@CookieCutter.Draw("post3d")
+    #def draw_postview(self):
         
         
-        if not self.points_shader: return
+    #    if not self.points_shader: return
         
-        bgl.glDepthMask(bgl.GL_TRUE)
-        bgl.glPointSize(8)
-        bgl.glDepthFunc(bgl.GL_LEQUAL)
+    #    bgl.glDepthMask(bgl.GL_TRUE)
+    #    bgl.glPointSize(8)
+    #    bgl.glDepthFunc(bgl.GL_LEQUAL)
         
-        self.points_shader.bind()
-        self.points_shader.uniform_float("color", (1,1,1,1))
-        self.points_batch.draw(self.points_shader)
+    #    self.points_shader.bind()
+    #    self.points_shader.uniform_float("color", (1,1,1,1))
+    #    self.points_batch.draw(self.points_shader)
         
-        bgl.glDepthFunc(bgl.GL_LEQUAL)
-        bgl.glDepthMask(bgl.GL_TRUE)
-        bgl.glDepthRange(0, 1)
+    #    bgl.glDepthFunc(bgl.GL_LEQUAL)
+    #    bgl.glDepthMask(bgl.GL_TRUE)
+    #    bgl.glDepthRange(0, 1)
         
         #bgl.glDisable(bgl.GL_POINT_SMOOTH)
         #bgl.glDisable(bgl.GL_POINTS)
-        bgl.glPointSize(1)
+    #    bgl.glPointSize(1)
     
-    
+ 
+    @CookieCutter.Draw("post3d")
+    def draw_spline_net(self):
+        
+        if not self.actions.r3d: return
+        
+        print('drawing!')
+        # if self.fps_low_warning: return     # skip drawing if low FPS warning is showing
+
+        buf_matrix_target = self.polytrim_render.spline_network.xform.mx_p # self.rftarget_draw.buf_matrix_model
+        buf_matrix_target_inv = self.polytrim_render.spline_network.xform.imx_p # self.rftarget_draw.buf_matrix_inverse
+        buf_matrix_view = self.actions.r3d.view_matrix # XForm.to_bglMatrix(self.actions.r3d.view_matrix)
+        buf_matrix_view_invtrans = matrix_normal(self.actions.r3d.view_matrix) # XForm.to_bglMatrix(matrix_normal(self.actions.r3d.view_matrix))
+        buf_matrix_proj = self.actions.r3d.window_matrix # XForm.to_bglMatrix(self.actions.r3d.window_matrix)
+        view_forward = self.actions.r3d.view_rotation @ Vector((0,0,-1))
+
+        bgl.glEnable(bgl.GL_MULTISAMPLE)
+        bgl.glEnable(bgl.GL_LINE_SMOOTH)
+        bgl.glHint(bgl.GL_LINE_SMOOTH_HINT, bgl.GL_NICEST)
+        bgl.glEnable(bgl.GL_BLEND)
+        # bgl.glEnable(bgl.GL_POINT_SMOOTH)
+        if True:  #why?
+            alpha_above,alpha_below = 1.0 , 0.1
+            cull_backfaces = False
+            alpha_backface = 0.2 
+            self.polytrim_render.draw(
+                view_forward, 1.0,
+                buf_matrix_target, buf_matrix_target_inv,
+                buf_matrix_view, buf_matrix_view_invtrans, buf_matrix_proj,
+                alpha_above, alpha_below, cull_backfaces, alpha_backface
+            )
+
+
 
     #@CookieCutter.Draw("post2d")
     #def draw_postpixel(self):

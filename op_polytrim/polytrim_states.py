@@ -10,8 +10,9 @@ import random
 from bpy_extras import view3d_utils
 
 from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
-from ..subtrees.addon_common.common.blender import show_error_message
+from ..subtrees.addon_common.common.blender import show_error_message, tag_redraw_all
 from ..subtrees.addon_common.common.fsm import FSM
+
 from .polytrim_datastructure import InputPoint, SplineSegment, CurveNode
 
 '''
@@ -85,12 +86,25 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
     @CookieCutter.FSM_State('spline main', 'enter')
     def spline_enter(self):
         self.create_points_batch()
-        
+        self.polytrim_render._gather_data()
+        tag_redraw_all('spline_enter')
         
     @CookieCutter.FSM_State('spline main')
     def spline_main(self):
-        self.cursor_modal_set('CROSSHAIR')
+        
         context = self.context
+        
+        if self.actions.pressed('RET'):
+            self.done()
+            return
+
+        if self.actions.pressed('ESC'):
+            self.done(cancel=True)
+            return
+                
+        #if self.actions.pressed('ESC'):
+        #    return 'cancel'
+            
 
         if self.actions.pressed('cancel'):
             self.main_menu_options()
@@ -100,6 +114,10 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             self.net_ui_context.update(self.actions.mouse)
             #TODO: Bring hover into NetworkUiContext
             self.hover_spline()
+            if self.net_ui_context.hovered_near[0] == 'POINT':
+                self.cursor_modal_set('HAND')
+            else:
+                self.cursor_modal_set('CROSSHAIR')
             #print(self.net_ui_context.hovered_near)
             #self.net_ui_context.inspect_print()
 
@@ -242,7 +260,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             return False
         return True
 
-    @CookieCutter.FSM_State('connect')
+    @CookieCutter.FSM_State('spline connect')
     def spline_connect(self):
         s = self.net_ui_context.selected
         n = self.net_ui_context.hovered_near[1]
@@ -631,6 +649,9 @@ class Polytrim_States():
             if self.actions.pressed('ESC'):
                 self.done(cancel=True)
                 return
+                
+            if self.actions.pressed('ESC'):
+                return 'cancel'
 
         # call the currently selected tool
         fsm.update()

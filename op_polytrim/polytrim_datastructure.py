@@ -40,6 +40,10 @@ from ..subtrees.bmesh_utilities.bmesh_utilities_common import grow_selection_to_
 from ..subtrees.bmesh_utilities.bmesh_utilities_common import flood_selection_by_verts, flood_selection_edge_loop, ensure_lookup, face_region_boundary_loops
 from ..subtrees.bmesh_utilities.bmesh_utilities_segmentation import  bmesh_loose_parts_faces
 
+
+from ..subtrees.addon_common.common.maths import Ray, XForm, BBox, Plane
+
+
 #adddon specific imports
 from ..lib.cut_algorithms import cross_section_2seeds_ver1, path_between_2_points, path_between_2_points_clean, find_bmedges_crossing_plane
 from ..lib.simplify import simplify_RDP, relax_vert_chain
@@ -3907,6 +3911,9 @@ class SplineNetwork(object): #InputNetwork
         self.bme = self.net_ui_context.bme  #the network exists on the BMesh, it is fundamental
         self.points = []
         self.segments = []  #order not important, but maintain order in this list for indexing?
+        
+        
+        self.xform = XForm(Matrix.Identity(4))  #everything in world coords
 
     def is_empty(self): return (not(self.points or self.segments))
     def num_points(self): return len(self.points)
