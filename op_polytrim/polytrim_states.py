@@ -63,10 +63,22 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         #select_patch
         #menu operators
         
+
+
+
+
     #automatically kick us into 'spline main'
     @CookieCutter.FSM_State('main')
-    def main(self):
-        return 'spline main'
+    def main(self):        
+        if self.actions.pressed('cancel'):
+            print('exiting!')
+            self.done(cancel = True)
+            return 'finished'
+
+    @CookieCutter.FSM_State('EXIT_addon')
+    def exit_tool(self):
+        self.done(cancel = True)
+        return 'finished'
       
 
     ######################################################

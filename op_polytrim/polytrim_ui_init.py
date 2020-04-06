@@ -8,7 +8,7 @@ import time
 import random
 
 from bpy_extras import view3d_utils
-
+from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
 from ..subtrees.addon_common.common import ui
 from ..subtrees.addon_common.common.blender import show_error_message
 
@@ -16,8 +16,7 @@ from ..subtrees.addon_common.common.blender import show_error_message
 from .polytrim_datastructure import InputPoint, SplineSegment, CurveNode
 
 
-class Polytrim_UI_Init280():
-
+class Polytrim_UI_Init280(CookieCutter):
     def tool_action(self):
         print('tool action')
         return
@@ -40,9 +39,9 @@ class Polytrim_UI_Init280():
         #collapsible, and framed_dialog
         #first, know
         
-        self.ui_main = ui.framed_dialog(label = 'ui.framed_dialog',
-                                          resiable = None,
-                                          resiable_x = True,
+        self.ui_main = ui.framed_dialog(label = 'Polytrim - Region outlining and mesh cutting tool.',
+                                          resizable = None,
+                                          resizable_x = False,
                                           resizable_y=False, 
                                           closeable=False, 
                                           moveable=True, 
@@ -51,25 +50,38 @@ class Polytrim_UI_Init280():
         
         # tools
         ui_tools = ui.div(id="tools", parent=self.ui_main)
-        ui.button(label='ui.button', title = 'self.tool_action() method linked to button', parent=ui_tools, on_mouseclick=self.tool_action)    
-        
+
         #create a collapsille container to hold a few variables
-        container = ui.collapsible('ui.collapse container', parent = self.ui_main)
+        ui_outline_container = ui.collapsible('Outline Properties', parent = self.ui_main, collapsed = False)
+        o_create = ui.button(label='Create', title = 'Create region boundary.', parent=ui_tools, on_mouseclick=self.launch_spline)
+        o_edit = ui.button(label='Edit', title = 'Edit selected region boundary.', parent=ui_tools, on_mouseclick=self.tool_action)
+        o_save = ui.button(label='Save', title = 'Save region boundary as a spline in the scene.', parent=ui_tools, on_mouseclick=self.tool_action)
+        o_select = ui.button(label='Select', title = 'Select existing region boundary spline.', parent=ui_tools, on_mouseclick=self.tool_action)
+        ui_outline_container.builder([o_create, o_edit, o_save, o_select])
+
+        ui_region_container = ui.collapsible('Region Properties', parent = self.ui_main, collapsed = False)
+        r_inward = ui.button(label='Select Inward', title = 'Select region enclosed by boundary.', parent=ui_tools, on_mouseclick=self.tool_action)
+        r_outward = ui.button(label='Select Outward', title = 'Select everything outside of boundary.', parent=ui_tools, on_mouseclick=self.tool_action)
+        r_grow = ui.button(label='Grow Selection', title = 'Increase boundary area with shape preserved.', parent=ui_tools, on_mouseclick=self.tool_action)
+        r_shrink = ui.button(label='Shrink Selection', title = 'Decrease boundary area with shape preserved.', parent=ui_tools, on_mouseclick=self.tool_action)
+        boundary_step = ui.labeled_input_text(label='Boundary Size Step', title='Integer property reflecting the step size when using Grow or Shrink Selection', value= self.variable_2)
+        ui_region_container.builder([r_inward, r_outward, r_grow, r_shrink, boundary_step])
+
+        ui_mesh_container = ui.collapsible("Mesh Properties", parent = self.ui_main, collapsed = False)
+        m_cut = ui.button(label='Cut Region', title = 'Copy the region into a new object and delete the selected region from existing mesh.', parent=ui_tools, on_mouseclick=self.tool_action)
+        m_copy = ui.button(label='Copy Region', title = 'Copy the region into a new object.', parent=ui_tools, on_mouseclick=self.tool_action)
+        m_delete = ui.button(label='Delete Region', title = 'Delete region from existing mesh. ', parent=ui_tools, on_mouseclick=self.tool_action)
+        ui_mesh_container.builder([m_cut, m_copy, m_delete])
+
+        EXIT_addon = ui.button(label='Close Tool', title = 'Exit the addon.', parent=ui_tools, on_mouseclick=self.exit_addon)
+
+    def launch_spline(self):
+        self.fsm.force_set_state("spline main")
+
+    def exit_addon(self):
+        self.fsm.force_set_state("EXIT_addon")
+
         
-        i1 = ui.labeled_input_text(label='Sui.labeled_input_text', 
-                              title='float property to BoundFLoat', 
-                              value= self.variable_1) 
-    
-        i2 = ui.labeled_input_text(label='ui.labled_input_text', 
-                              title='integer property to BoundInt', 
-                              value= self.variable_2)
-        
-        
-        i3 = ui.input_checkbox(
-                label='ui.input_checkbox',
-                title='True/False property to BoundBool')
-    
-        container.builder([i1, i2, i3])
         
         
 class Polytrim_UI_Init():
