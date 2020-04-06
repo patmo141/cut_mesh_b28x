@@ -98,9 +98,9 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             self.done()
             return
 
-        if self.actions.pressed('ESC'):
-            self.done(cancel=True)
-            return
+        #if self.actions.pressed('ESC'):
+        #    self.done(cancel=True)
+        #    return
                 
         #if self.actions.pressed('ESC'):
         #    return 'cancel'
