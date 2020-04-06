@@ -17,7 +17,8 @@ from .polytrim_ui_init       import Polytrim_UI_Init280
 from .polytrim_ui_tools      import Polytrim_UI_Tools
 from .polytrim_ui_draw       import Polytrim_UI_Draw280
 from .polytrim_datastructure import InputNetwork, NetworkCutter, SplineNetwork
-
+from .polytrim_render  import SplineNetworkRender
+from .polytrim_render import opts as render_opts
 
 
 #some settings container
@@ -129,6 +130,9 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.patch_boundary_fit_epsilon =  prefs.patch_boundary_fit_epsilon
         self.spline_tessellation_epsilon = prefs.spline_tessellation_epsilon
 
+
+        self.polytrim_render = SplineNetworkRender(self.spline_net, render_opts)
+        
         
         self.setup_ui()
         #self.fsm_setup()

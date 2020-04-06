@@ -25,6 +25,7 @@ Created by Jonathan Denning, Jonathan Williamson
 # dictionary to convert color name to color values, either (R,G,B) or (R,G,B,a)
 # https://www.quackit.com/css/css_color_codes.cfm
 import random
+from mathutils import Color
 
 def get_random_color():
     global random_hsvs, random_index

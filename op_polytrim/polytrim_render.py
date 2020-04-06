@@ -122,9 +122,9 @@ class SplineNetworkRender():
     
     def __init__(self, spline_network, opts):
         
-        self.load_verts = opts.get('load verts', True)
-        self.load_edges = opts.get('load edges', True)
-        self.load_faces = opts.get('load faces', True)
+        self.load_verts = True #opts.get('load verts', True)
+        self.load_edges = True #opts.get('load edges', True)
+        self.load_faces = False #opts.get('load faces', True)
 
         self.buf_matrix_model = spline_network.xform.to_bglMatrix_Model()
         self.buf_matrix_inverse = spline_network.xform.to_bglMatrix_Inverse()
@@ -169,6 +169,8 @@ class SplineNetworkRender():
 
     #@profiler.function
     def _gather_data(self):
+        
+        print('gathering data')
         self.buffered_renders = []
 
         def gather():
@@ -189,7 +191,7 @@ class SplineNetworkRender():
                 # selection will bleed
                 #pr = profiler.start('gathering', enabled=not self.async_load)
                 if True:  #why if True?
-                    if self.load_faces:
+                    if False:  #self.load_faces
                         tri_faces = [(bmf, list(bmvs))
                                      for bmf in self.bmesh.faces
                                      for bmvs in triangulateFace(bmf.verts)
@@ -219,12 +221,13 @@ class SplineNetworkRender():
                             self.add_buffered_render(bgl.GL_TRIANGLES, face_data)
 
                     if self.load_edges:
+                        print('loading edges')
                         segs = self.spline_network.segments
                         
                         for seg in segs:
                             node0 = seg.n0
                             node1 = seg.n1
-                            no = .5 * (node0.view + node1.view)
+                            no = - .5 * (node0.view + node1.view)
                             
                             edge_data = {
                                 'vco': [
@@ -242,10 +245,12 @@ class SplineNetworkRender():
                                 'idx': None,  # list(range(len(self.bmesh.edges)*2)),
                                 }
                            
+                            print(edge_data)
                             #make a buffer per segment
                             self.add_buffered_render(bgl.GL_LINES, edge_data)
 
                     if self.load_verts:
+                        print('loading verts')
                         verts = self.spline_network.points
                         l = len(verts)
                         for i0 in range(0, l, vert_count):
@@ -257,6 +262,7 @@ class SplineNetworkRender():
                                 'idx': None,  # list(range(len(self.bmesh.verts))),
                             }
                             
+                            print(vert_data)
                             self.add_buffered_render(bgl.GL_POINTS, vert_data)
 
                 time_end = time.time()
@@ -323,15 +329,17 @@ class SplineNetworkRender():
         symmetry_effect=0.0, symmetry_frame: Frame=None
     ):
         self.clean()
-        if not self.buffered_renders: return
+        if not self.buffered_renders:
+            print('no buffered renders')
+            return
 
         try:
             bgl.glDepthMask(bgl.GL_FALSE)       # do not overwrite the depth buffer
 
             opts = dict(self.opts)
 
-            opts['matrix model'] = self.rfmesh.xform.mx_p
-            opts['matrix normal'] = self.rfmesh.xform.mx_n
+            opts['matrix model'] = self.spline_network.xform.mx_p
+            opts['matrix normal'] = self.spline_network.xform.mx_n
             opts['matrix target'] = buf_matrix_target
             opts['matrix target inverse'] = buf_matrix_target_inv
             opts['matrix view'] = buf_matrix_view
@@ -350,7 +358,7 @@ class SplineNetworkRender():
             opts['cull backfaces'] = cull_backfaces
             opts['alpha backface'] = alpha_backface
             opts['dpi mult'] = self.drawing.get_dpi_mult()
-            mirror_axes = self.rfmesh.mirror_mod.xyz if self.rfmesh.mirror_mod else []
+            mirror_axes = [] #self.spline_network.mirror_mod.xyz if self.spline_network.mirror_mod else []
             for axis in mirror_axes: opts['mirror %s' % axis] = True
 
             #pr = profiler.start('geometry above')
@@ -364,7 +372,6 @@ class SplineNetworkRender():
                 opts['point mirror hidden'] = 1 - alpha_above
                 for buffered_render in self.buffered_renders:
                     buffered_render.draw(opts)
-            pr.done()
 
             if not opts.get('no below', False):
                 # draw geometry hidden behind
@@ -385,5 +392,6 @@ class SplineNetworkRender():
             bgl.glDepthMask(bgl.GL_TRUE)
             bgl.glDepthRange(0, 1)
         except:
-            #Debugger.print_exception()
+            #print('Exception Exception')
+            Debugger.print_exception()
             pass
