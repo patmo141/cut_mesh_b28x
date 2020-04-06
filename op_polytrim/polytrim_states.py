@@ -66,7 +66,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
 
 
 
-    #automatically kick us into 'spline main'
+    #main menu states
     @CookieCutter.FSM_State('main')
     def main(self):        
         if self.actions.pressed('cancel'):
@@ -91,6 +91,9 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
     def spline_main(self):
         self.cursor_modal_set('CROSSHAIR')
         context = self.context
+
+        if self.actions.pressed('cancel'):
+            self.main_menu_options()
 
         mouse_just_stopped = self.actions.mousemove_prev and not self.actions.mousemove
         if mouse_just_stopped:
