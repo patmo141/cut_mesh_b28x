@@ -71,7 +71,7 @@ class Polytrim_UI_Init280(CookieCutter):
         
         
         #region menu
-        self.ui_region_container = ui.collapsible('Region Properties', parent = self.ui_main, collapsed = False)
+        self.ui_region_container = ui.collection(label='Region Properties', parent = self.ui_main)
         r_inward = ui.button(label='Select Inward', title = 'Select region enclosed by boundary.', parent=self.main_menu, on_mouseclick=self.tool_action)
         r_outward = ui.button(label='Select Outward', title = 'Select everything outside of boundary.', parent=self.main_menu, on_mouseclick=self.tool_action)
         r_grow = ui.button(label='Grow Selection', title = 'Increase boundary area with shape preserved.', parent=self.main_menu, on_mouseclick=self.tool_action)
@@ -81,7 +81,7 @@ class Polytrim_UI_Init280(CookieCutter):
 
 
         #mesh menu
-        self.ui_mesh_container = ui.collapsible("Mesh Properties", parent = self.ui_main, collapsed = False)
+        self.ui_mesh_container = ui.collection(label="Mesh Properties", parent = self.ui_main)
         m_cut = ui.button(label='Cut Region', title = 'Copy the region into a new object and delete the selected region from existing mesh.', parent=self.main_menu, on_mouseclick=self.tool_action)
         m_copy = ui.button(label='Copy Region', title = 'Copy the region into a new object.', parent=self.main_menu, on_mouseclick=self.tool_action)
         m_delete = ui.button(label='Delete Region', title = 'Delete region from existing mesh. ', parent=self.main_menu, on_mouseclick=self.tool_action)

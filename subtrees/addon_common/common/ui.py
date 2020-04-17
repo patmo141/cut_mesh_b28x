@@ -152,7 +152,7 @@ def dialog(**kwargs):
     return UI_Element(tagName='dialog', **kwargs)
 
 def label(**kwargs):
-    return UI_Element(tagName='label', **kwargs)
+    return UI_Element(tagName='label', style="color:white", **kwargs)
 
 def input_radio(**kwargs):
     helper_argtranslate('label', 'innerText', kwargs)
@@ -334,7 +334,7 @@ def input_text(**kwargs):
 def collection(label, **kwargs):
     kw_inside = helper_argsplitter({'children'}, kwargs)
     ui_container = UI_Element(tagName='div', classes='collection', **kwargs)
-    ui_label = div(innerText=label, classes='header', parent=ui_container)
+    ui_label = div(innerText=label, classes='header', parent=ui_container, style="color:white")
     ui_inside = UI_Element(tagName='div', classes='inside', parent=ui_container, **kw_inside)
     ui_proxy = UI_Proxy(ui_container)
     ui_proxy.map(['children','append_child','delete_child','clear_children', 'builder'], ui_inside)
