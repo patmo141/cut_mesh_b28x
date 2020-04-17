@@ -647,6 +647,7 @@ div.mdown img.inline {
     display: block;
     width: 100%;
     background: transparent;
+    color: white;
 }
 *.labeledinputtext-container > *.labeledinputtext-input-container {
     margin: 0px;
