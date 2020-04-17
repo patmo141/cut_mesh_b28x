@@ -26,6 +26,7 @@ from ..subtrees.addon_common.common.utils import get_matrices
 
 from ..subtrees.addon_common.common.maths import Point, Direction, XForm
 from ..subtrees.addon_common.common.bezier import CubicBezierSpline
+from ..subtrees.addon_common.common.blender import tag_redraw_all
 from ..lib.rays import get_view_ray_data, ray_cast, ray_cast_path, ray_cast_bvh
 
 
@@ -57,6 +58,8 @@ class Polytrim_UI_Tools():
 
         def get_locs(self): return self.sketch
 
+        def get_vector_locs(self): return [Vector(p) for p in self.sketch]
+        
         def reset(self): self.sketch = []
 
         def add_loc(self, x, y):
@@ -98,7 +101,7 @@ class Polytrim_UI_Tools():
                         #loc, no, face_ind =  ray_cast(self.net_ui_context.ob,self.net_ui_context.imx, ray_origin, ray_target, None)  #intersects that ray with the geometry
                         loc, no, face_ind =  ray_cast_bvh(self.net_ui_context.bvh,self.net_ui_context.imx, ray_origin, ray_target, None)
                         if face_ind != None:
-                            new_pnt = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
+                            new_pnt = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, face_ind)
                     if prev_pnt:
                         print(prev_pnt)
                         seg = InputSegment(prev_pnt,new_pnt)
@@ -121,7 +124,7 @@ class Polytrim_UI_Tools():
                     loc, no, face_ind =  ray_cast_bvh(self.net_ui_context.bvh,self.net_ui_context.imx, ray_origin, ray_target, None)
                     if face_ind != None:
                             sketch_3d += [self.net_ui_context.mx @ loc]
-                            other_data += [(loc, view_vector, face_ind)]
+                            other_data += [(loc,  self.net_ui_context.mx_norm @ no, view_vector, face_ind)]
 
                 feature_inds = simplify_RDP(sketch_3d, .25)  #TODO, sketch threshold
 
@@ -133,8 +136,8 @@ class Polytrim_UI_Tools():
                         else: new_pnt = start_pnt
                     else:
                         loc3d = sketch_3d[ind]
-                        loc, view_vector, face_ind = other_data[ind]
-                        new_pnt = self.spline_net.create_point(loc3d, loc, view_vector, face_ind)
+                        loc, normal, view_vector, face_ind = other_data[ind]
+                        new_pnt = self.spline_net.create_point(loc3d, loc, normal, view_vector, face_ind)
                         new_points += [new_pnt]
                     if prev_pnt:
                         print(prev_pnt)
@@ -666,7 +669,7 @@ class Polytrim_UI_Tools():
             bmed, wrld_loc = self.net_ui_context.hovered_near[1] # hovered_near[1] is tuple (BMesh Element, location?)
             ip1 = self.closest_endpoint(wrld_loc)
 
-            self.net_ui_context.selected = self.input_net.create_point(wrld_loc, self.net_ui_context.imx @ wrld_loc, view_vector, bmed.link_faces[0].index)
+            self.net_ui_context.selected = self.input_net.create_point(wrld_loc, self.net_ui_context.imx @ wrld_loc,  self.net_ui_context.mx_norm @ bmed.link_faces[0].normal,  view_vector, bmed.link_faces[0].index)
             self.net_ui_context.selected.seed_geom = bmed
             self.net_ui_context.selected.bmedge = bmed  #UNUSED BUT PREPARING FOR FUTURE
 
@@ -680,17 +683,17 @@ class Polytrim_UI_Tools():
         elif (self.net_ui_context.hovered_near[0] == None) and (self.net_ui_context.snap_element == None):  #adding in a new point at end, may need to specify closest unlinked vs append and do some previs
             print("Here 11")
             closest_endpoint = self.closest_endpoint(self.net_ui_context.mx @ loc)
-            self.net_ui_context.selected = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
+            self.net_ui_context.selected = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, view_vector, face_ind)
             print('create new point')
             
             if len(self.spline_net.points):
                 last_node = self.spline_net.points[-1]
-                new_node = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
+                new_node = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc,self.net_ui_context.mx_norm @ no, view_vector, face_ind)
                 self.spline_net.connect_points(new_node, last_node)
                 new_node.update_splines()
                 last_node.update_splines()  #this is going to update the spline twice?
             else:
-                new_node = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
+                new_node = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, view_vector, face_ind)
                    
             if closest_endpoint and connect:
                 self.input_net.connect_points(self.net_ui_context.selected, closest_endpoint)
@@ -716,7 +719,7 @@ class Polytrim_UI_Tools():
             self.net_ui_context.selected = self.net_ui_context.hovered_near[1]
 
         elif self.net_ui_context.hovered_near[0] == 'EDGE':  #TODO, actually make InputSegment as hovered_near
-            point = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
+            point = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, view_vector, face_ind)
             old_seg = self.net_ui_context.hovered_near[1]
             self.input_net.insert_point(point, old_seg)
             self.net_ui_context.selected = point
@@ -749,11 +752,11 @@ class Polytrim_UI_Tools():
         #add an input node on non manifold edge of mesh
         if self.net_ui_context.hovered_near[0] and 'NON_MAN' in self.net_ui_context.hovered_near[0]:
             bmed, wrld_loc = self.net_ui_context.hovered_near[1]
-            p = self.spline_net.create_point(wrld_loc,imx @ wrld_loc, view_vector, bmed.link_faces[0].index)
+            p = self.spline_net.create_point(wrld_loc,imx @ wrld_loc, self.net_ui_context.mx_norm @ bmed.link_faces[0].normal,view_vector, bmed.link_faces[0].index)
             p.seed_geom = bmed
             p.bmedge = bmed #UNUSED, but preparing for future
         else:
-            p = self.spline_net.create_point(mx @ loc, loc, view_vector, face_ind)
+            p = self.spline_net.create_point(mx @ loc, loc, self.net_ui_context.mx_norm @ no, view_vector, face_ind)
 
         return p
     
@@ -766,7 +769,7 @@ class Polytrim_UI_Tools():
         view_vector, ray_origin, ray_target = get_view_ray_data(self.context, p2d)
     
         
-        p = self.spline_net.create_point(mx @ loc, loc, view_vector, face_ind)
+        p = self.spline_net.create_point(mx @ loc, loc, self.net_ui_context.mx_norm @ no,  view_vector, face_ind)
          
         #place holder for later hovering the tessellated line segments    
         #old_discrete_seg = self.net_ui_context.hovered_near[1]
@@ -818,7 +821,7 @@ class Polytrim_UI_Tools():
             bmed, wrld_loc = self.net_ui_context.hovered_near[1] # hovered_near[1] is tuple (BMesh Element, location?)
             ip1 = self.closest_spline_endpoint(wrld_loc)
 
-            self.net_ui_context.selected = self.spline_net.create_point(wrld_loc, self.net_ui_context.imx @ wrld_loc, view_vector, bmed.link_faces[0].index)
+            self.net_ui_context.selected = self.spline_net.create_point(wrld_loc, self.net_ui_context.imx @ wrld_loc, self.net_ui_context.mx_norm @ no, view_vector, bmed.link_faces[0].index)
             self.net_ui_context.selected.seed_geom = bmed
             self.net_ui_context.selected.bmedge = bmed  #UNUSED, but preparing for future
 
@@ -835,7 +838,7 @@ class Polytrim_UI_Tools():
         elif (self.net_ui_context.hovered_near[0] == None) and (self.net_ui_context.snap_element == None):  #adding in a new point at end, may need to specify closest unlinked vs append and do some previs
             
             closest_endpoint = self.closest_spline_endpoint(self.net_ui_context.mx @ loc)
-            self.net_ui_context.selected = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
+            self.net_ui_context.selected = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, view_vector, face_ind)
             print('create new point')
                 
             if closest_endpoint and connect:
@@ -860,7 +863,7 @@ class Polytrim_UI_Tools():
             self.net_ui_context.selected = self.net_ui_context.hovered_near[1]
 
         elif self.net_ui_context.hovered_near[0] == 'EDGE':  #TODO, actually make InputSegment as hovered_near
-            point = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, view_vector, face_ind)
+            point = self.spline_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, view_vector, face_ind)
             old_seg = self.net_ui_context.hovered_near[1]
             self.spline_net.insert_point(point, old_seg)
             old_seg.clear_input_net_references(self.input_net)
@@ -1743,6 +1746,7 @@ class Polytrim_UI_Tools():
             # the mouse is hovering over a point
             self.net_ui_context.hovered_near = ['POINT', closest_ip]  #TODO, probably just store the actual InputPoint as the 2nd value?
             self.net_ui_context.hovered_dist2D = pixel_dist
+            tag_redraw_all('HOVERED POINT')
             return
 
         if select_radius <= pixel_dist < snap_radius:
@@ -1757,6 +1761,7 @@ class Polytrim_UI_Tools():
                 if len(closest_endpoints) < 2: return
                 self.net_ui_context.hovered_near = ['POINT CONNECT', closest_ip]
                 self.net_ui_context.connect_element = closest_endpoints[1]
+                tag_redraw_all('POINT CONNECT')
             return
 
         # bail if there are only one num_points (no segments)
@@ -1782,6 +1787,7 @@ class Polytrim_UI_Tools():
                 if (dist < select_radius**2) and (bound < 1) and (bound > 0):
                     spline_seg = closest_seg.parent_spline
                     self.net_ui_context.hovered_near = ['EDGE', spline_seg]
+                    tag_redraw_all('HOVERED EDGE')
                     return
         ## Multiple points, but not hovering over edge or point.
 

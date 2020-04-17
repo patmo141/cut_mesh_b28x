@@ -7,6 +7,7 @@ Created on Oct 11, 2015
 import time
 import random
 
+import bpy
 from bpy_extras import view3d_utils
 from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
 from ..subtrees.addon_common.common import ui
@@ -34,6 +35,11 @@ class Polytrim_UI_Init280(CookieCutter):
         
         #we need to read ui_core, particulalry UI_Element
         
+        #TODO THIS IS MORE BLENDER UI SETTINGS TO MANAGE
+        space = bpy.context.space_data
+        space.shading.type = 'SOLID'
+        space.shading.color_type = 'VERTEX'
+        
         
         
         #collapsible, and framed_dialog
@@ -60,6 +66,7 @@ class Polytrim_UI_Init280(CookieCutter):
         ui_outline_container.builder([o_create, o_edit, o_save, o_select])
 
         ui_region_container = ui.collapsible('Region Properties', parent = self.ui_main, collapsed = False)
+        
         r_inward = ui.button(label='Select Inward', title = 'Select region enclosed by boundary.', parent=ui_tools, on_mouseclick=self.tool_action)
         r_outward = ui.button(label='Select Outward', title = 'Select everything outside of boundary.', parent=ui_tools, on_mouseclick=self.tool_action)
         r_grow = ui.button(label='Grow Selection', title = 'Increase boundary area with shape preserved.', parent=ui_tools, on_mouseclick=self.tool_action)
@@ -73,13 +80,20 @@ class Polytrim_UI_Init280(CookieCutter):
         m_delete = ui.button(label='Delete Region', title = 'Delete region from existing mesh. ', parent=ui_tools, on_mouseclick=self.tool_action)
         ui_mesh_container.builder([m_cut, m_copy, m_delete])
 
-        EXIT_addon = ui.button(label='Close Tool', title = 'Exit the addon.', parent=ui_tools, on_mouseclick=self.exit_addon)
-
+        m_spline = ui.button(label='Draw Splines', title = 'Create region boundary', parent=ui_tools, on_mouseclick=self.launch_spline)
+        m_seed = ui.button(label='Place Seeds', title = 'Place seed inside boundary', parent=ui_tools, on_mouseclick=self.launch_seed)
+        exit_tool = ui.button(label='Close Tool', title = 'Exit the Tool.', parent=ui_tools, on_mouseclick=self.exit_addon) 
+        
     def launch_spline(self):
         self.fsm.force_set_state("spline main")
 
+    def launch_seed(self):
+        self.fsm.force_set_state("seed main")
+        
+        
     def exit_addon(self):
-        self.fsm.force_set_state("EXIT_addon")
+        self.done(cancel = True)
+        #self.fsm.force_set_state("EXIT_addon")
 
         
         

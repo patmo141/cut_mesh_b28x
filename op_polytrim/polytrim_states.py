@@ -64,23 +64,12 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         #menu operators
         
 
-
-
-
     #automatically kick us into 'spline main'
     @CookieCutter.FSM_State('main')
     def main(self):        
-        if self.actions.pressed('cancel'):
-            print('exiting!')
-            self.done(cancel = True)
-            return 'finished'
+        return 'spline main'
 
-    @CookieCutter.FSM_State('EXIT_addon')
-    def exit_tool(self):
-        self.done(cancel = True)
-        return 'finished'
-      
-
+    
     ######################################################
     # spline editing
     @CookieCutter.FSM_State('spline main', 'enter')
@@ -155,6 +144,8 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             self.net_ui_context.update(self.actions.mouse)
 
             self.hover_spline()
+            self.polytrim_render._gather_data()
+            tag_redraw_all('delete point')
             #self.ui_text_update()
             return
 
@@ -162,6 +153,8 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             self.click_delete_spline_point('mouse', True)
             self.net_ui_context.update(self.actions.mouse)
             self.hover_spline()
+            self.polytrim_render._gather_data()
+            tag_redraw_all('delete point')
             #self.ui_text_update()
             return
 
@@ -223,6 +216,8 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             self.net_ui_context.update(p2d)
             self.net_ui_context.nearest_non_man_loc()
             self.grabber.move_grab_point(self.context, p2d)
+            self.polytrim_render._gather_data()
+            tag_redraw_all('grabing!')
 
     @CookieCutter.FSM_State('tweak', 'exit')
     def spline_tweak_exit(self):
@@ -232,6 +227,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             if isinstance(self.net_ui_context.selected, CurveNode):
                 self.spline_net.push_to_input_net(self.net_ui_context, self.input_net)
                 self.network_cutter.update_segments_async()
+                tag_redraw_all('update segments')
             else:
                 self.network_cutter.update_segments()
         #self.ui_text_update()
@@ -391,6 +387,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         if isinstance(self.net_ui_context.selected, CurveNode):
             self.spline_net.push_to_input_net(self.net_ui_context, self.input_net)
             self.network_cutter.update_segments_async()
+            tag_redraw_all('update segments')
         else:
             self.network_cutter.update_segments()
 
@@ -437,6 +434,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
     def spline_sketch(self):
         if self.actions.mousemove:
             self.sketcher.smart_add_loc(*self.actions.mouse)
+            tag_redraw_all('sktch stroke update')
         if self.actions.released('sketch'):
             return 'spline main'
 
@@ -453,8 +451,9 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             self.hover_spline()
             new_hovered_point = self.net_ui_context.hovered_near[1] if self.net_ui_context.hovered_near[0] in {'POINT', 'POINT CONNECT'} else None
             if new_hovered_point: self.net_ui_context.selected = new_hovered_point
-        self.ui_text_update()
+        #self.ui_text_update()
         self.sketcher.reset()
+        tag_redraw_all('sketch exit')
 
 
     @CookieCutter.FSM_State('seed main')
@@ -509,7 +508,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
     @CookieCutter.FSM_State('region main', 'enter')
     def region_main_enter(self):
         self.brush = self.PaintBrush(self.net_ui_context, radius=self.brush_radius)
-        self.ui_text_update()
+        #self.ui_text_update()
 
     @CookieCutter.FSM_State('region main')
     def region_main(self):
@@ -696,12 +695,12 @@ class Polytrim_States():
         else:
             self.network_cutter.find_boundary_faces_cycles()
         self.seed_fsm.reset()
-        self.ui_text_update()
+        #self.ui_text_update()
 
     @CookieCutter.FSM_State('seed', 'exit')
     def seed_exit(self):
         self.seed_fsm.reset()
-        self.ui_text_update()
+        #self.ui_text_update()
         # if not self.network_cutter.knife_complete:
         #    #assoccates SplineNetwork and InputNetwork elements with patches
         #     self.network_cutter.update_spline_edited_patches(self.spline_net)
@@ -726,7 +725,7 @@ class Polytrim_States():
             patch.color_patch()
         self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
         self.segmentation_fsm.reset()
-        self.ui_text_update()
+        #self.ui_text_update()
 
     @CookieCutter.FSM_State('segmentation')
     def segmentation(self):
@@ -756,13 +755,13 @@ class Polytrim_States():
 
         self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
         self.region_fsm.reset()
-        self.ui_text_update()
+        #self.ui_text_update()
 
     @CookieCutter.FSM_State('region', 'exit')
     def region_exit(self):
         self.paint_exit()
         self.region_fsm.reset()
-        self.ui_text_update()
+        #self.ui_text_update()
 
     @CookieCutter.FSM_State('region')
     def region(self):
@@ -821,14 +820,14 @@ class Polytrim_States():
             self.net_ui_context.update(self.actions.mouse)
 
             self.hover_spline()
-            self.ui_text_update()
+            #self.ui_text_update()
             return
 
         if self.actions.pressed('delete (disconnect)'):
             self.click_delete_spline_point('mouse', True)
             self.net_ui_context.update(self.actions.mouse)
             self.hover_spline()
-            self.ui_text_update()
+            #self.ui_text_update()
             return
 
 

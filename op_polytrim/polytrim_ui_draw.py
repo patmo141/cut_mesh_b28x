@@ -153,7 +153,7 @@ class Polytrim_UI_Draw280():
         
         if not self.actions.r3d: return
         
-        print('drawing!')
+        #print('drawing!')
         # if self.fps_low_warning: return     # skip drawing if low FPS warning is showing
 
         buf_matrix_target = self.polytrim_render.spline_network.xform.mx_p # self.rftarget_draw.buf_matrix_model
@@ -178,9 +178,100 @@ class Polytrim_UI_Draw280():
                 buf_matrix_view, buf_matrix_view_invtrans, buf_matrix_proj,
                 alpha_above, alpha_below, cull_backfaces, alpha_backface
             )
+            
 
+    @CookieCutter.Draw("post2d")
+    def draw_screen_space(self):
+        
+        #print('drawing 2d')
+        
+        #Draw the Connection line Hint
+        #print(self.fsm.state)
+        if self.fsm.state == 'spline main' and self.net_ui_context.snap_element and self.net_ui_context.selected:
+            #print('we are attempting to draw')
+            psnap = self.net_ui_context.snap_element
+            psel = self.net_ui_context.selected
+            
+            if psnap != psel:
+                pn = psnap.world_loc
+                ps = psel.world_loc
+                #pts_2d = [loc3d_reg2D(context.region, context.space_data.region_3d, pt_3d) for pt_3d in [pn, ps]]
+                
+                #print(pts_2d)
+                #old method
+                #draw2d_polyline(pts_2d, preview_line_clr, preview_line_wdth)    
+                #new method
+                p0 = self.drawing.Point_to_Point2D(pn)
+                p1 = self.drawing.Point_to_Point2D(ps)
+                #print('self.drawing.draw2D_line')
+                self.drawing.draw2D_line(p0, p1, color0 = preview_line_clr, width = preview_line_wdth)
+        
+        #Snap Element Hint
+        if self.net_ui_context.snap_element:
+            # draw snap/sketch circle
+            loc = self.net_ui_context.snap_element.world_loc
+            p = self.drawing.Point_to_Point2D(loc)
+            #self.draw_circle(loc, 24, .7, green_trans, clear)
+            self.drawing.draw2D_circle(p, 24, green_trans, color1 = clear, width = int(.7*24))
+            
+            
+        #Draw the Sketch Stroke
+        if self.fsm.state == 'sketch':
+            #print(self.fsm.sate)
+            pts2d = self.sketcher.get_vector_locs()
+            self.drawing.draw2D_linestrip(pts2d, (0.0, 1.0, 0.0, 0.4), width = 2, stipple = None)
+        
+        #Put a Ring Around the Hovered Element
+        if self.net_ui_context.hovered_near[0] in {'POINT'}:
+            # draw selection circle
+            loc = self.net_ui_context.hovered_near[1].world_loc
+            p = self.drawing.Point_to_Point2D(loc)
+            self.drawing.draw2D_circle(p, 12, green_trans, color1 = clear)
+                                 
+        #INSERT POINT HINT
+        if self.net_ui_context.hovered_near[0] in {'EDGE'}:
+            # draw insertion circle
+            loc = self.net_ui_context.hovered_mesh['world loc']
+            p = self.drawing.Point_to_Point2D(loc)
+            self.drawing.draw2D_circle(p, 12, green_trans, color1 = clear)
+            
+            #(world_loc, radius, inner_ratio, color_outside, color_inside)
+            #self.draw_circle(loc, 10, .7, green_trans, clear)                         
+        
+        #Non Manifold Edge Snap
+        if self.net_ui_context.hovered_near[0] in {'NON_MAN_ED', 'NON_MAN_VERT'}:
+            # draw non-manifold circle
+            loc = self.net_ui_context.hovered_near[1][1]
+            p = self.drawing.Point_to_Point2D(loc)
+            self.drawing.draw2D_circle(p, 10, green_trans, color1 = clear)
+            #self.draw_circle(loc, 10, .7, green_trans, clear)
+            
+            
+            
+        #draw  bad segment hints
+        if self.hint_bad:
+            for seg in self.input_net.segments:
+                if not seg.is_bad: continue
+                mid = .5 * (seg.ip0.world_loc + seg.ip1.world_loc)
+                p = self.drawing.Point_to_Point2D(loc)
+                self.drawing.draw2D_circle(p, 3, red, color1 = clear, width = 3)
+                #common_drawing.draw_3d_points(context,[mid], 10, red)
+           
+        if self.fsm.state == 'spline main' and self.net_ui_context.hovered_near[0] == 'EDGE':
+            seg = self.net_ui_context.hovered_near[1]
+            p0 = seg.n0.world_loc
+            p1 = seg.n1.world_loc
+            pn = self.net_ui_context.hovered_mesh['world loc']
 
-
+            pts_2d = [self.drawing.Point_to_Point2D(pt_3d) for pt_3d in [p0, pn, p1]]
+            self.drawing.draw2D_linestrip(pts_2d, preview_line_clr, width = preview_line_wdth)
+            #draw2d_polyline(pts_2d, preview_line_clr, preview_line_wdth)
+            
+            
+            
+            
+            
+        
     #@CookieCutter.Draw("post2d")
     #def draw_postpixel(self):
         

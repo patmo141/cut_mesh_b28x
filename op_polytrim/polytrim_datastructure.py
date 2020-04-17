@@ -190,7 +190,7 @@ class BMFacePatch(object):
     Data Structure for managing patches on BMeshes meant to help
     in segmentation of surface patches
     '''
-    def __init__(self, bmface, local_loc, world_loc, vcol_layer, color = (1.0, .7, 0)):
+    def __init__(self, bmface, local_loc, world_loc, vcol_layer, color = (1.0, .7, 0, 1)):
         self.seed_face = bmface
         self.local_loc = local_loc
         self.world_loc = world_loc
@@ -282,10 +282,10 @@ class BMFacePatch(object):
             
         for f in self.patch_faces:
             for loop in f.loops:
-                loop[color_layer] = self.color
+                loop[color_layer] = (self.color.r, self.color.g, self.color.b, 1)
 
     def un_color_patch(self, color_layer = None):
-        color = Color((1,1,1))
+        color = (1,1,1,1)  #white
         if color_layer == None:
             color_layer = self.color_layer
             
@@ -449,6 +449,7 @@ class NetworkCutter(object):
         cut_no = e_vec.cross(surf_no)
         
         return cut_no              
+    
     def precompute_cut(self, seg):
 
         print('precomputing cut!')
@@ -582,7 +583,7 @@ class NetworkCutter(object):
                         break
 
             if len(vs):
-                print('crossed %i faces' % len(faces_crossed))
+                print('crossed %i faces and %i verts' % (len(faces_crossed), len(vs)))
                 seg.face_chain = faces_crossed
                 seg.path = [self.net_ui_context.mx @ v for v in vs]
                 seg.bad_segment = False
@@ -786,7 +787,7 @@ class NetworkCutter(object):
                 loc, no, face_ind, d =  self.net_ui_context.bvh.find_nearest(self.net_ui_context.imx @ (pt + .1 * delta))
                 if face_ind == None: continue
                 #TODO store a view dictionary from the brush
-                new_pnt = spline_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, face_ind)
+                new_pnt = spline_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, self.net_ui_context.mx_norm @ no, face_ind)
                 #patch.ip_points.append(new_pnt)
                 #new_pnt = self.spline_net.create_point(loc3d, loc, view_vector, face_ind)
                 new_points += [new_pnt]
@@ -910,8 +911,8 @@ class NetworkCutter(object):
                         delta.normalize()
                         loc, no, face_ind, d =  self.net_ui_context.bvh.find_nearest(self.net_ui_context.imx @ (pt + .1 * delta))
                         if face_ind == None: continue
-                        #TODO store a view dictionary from the brush
-                        new_pnt = spline_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, face_ind)
+                        #TODO store a view dictionary from the brush?
+                        new_pnt = spline_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, self.net_ui_context.mx_norm @ no, face_ind)
                         #patch.ip_points.append(new_pnt)
                         #new_pnt = self.spline_net.create_point(loc3d, loc, view_vector, face_ind)
                         new_points += [new_pnt]
@@ -1046,11 +1047,11 @@ class NetworkCutter(object):
                 
                 loc, no, face_ind, d =  self.net_ui_context.bvh.find_nearest(self.net_ui_context.imx @ (pt + .1 * delta))
                 if face_ind != None:
-                    new_pnt = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, face_ind)
+                    new_pnt = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, self.net_ui_context.mx_norm @ no, face_ind)
                     patch.ip_points.append(new_pnt)
                 if face_ind == None: continue
                 #TODO store a view dictionary from the brush
-                new_pnt = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, face_ind)
+                new_pnt = self.input_net.create_point(self.net_ui_context.mx @ loc, loc, self.net_ui_context.mx_norm @ no, self.net_ui_context.mx_norm @ no, face_ind)
                 #patch.ip_points.append(new_pnt)
                 #new_pnt = self.spline_net.create_point(loc3d, loc, view_vector, face_ind)
                 new_points += [new_pnt]
@@ -3153,10 +3154,11 @@ class InputPoint(object):  # NetworkNode
     '''
     Representation of an input point
     '''
-    def __init__(self, world, local, view, face_ind, seed_geom = None, bmface = None, bmedge = None, bmvert = None):
+    def __init__(self, world, local, view, normal, face_ind, seed_geom = None, bmface = None, bmedge = None, bmvert = None):
         self.world_loc = world
         self.local_loc = local
         self.view = view
+        self.normal = normal
         self.face_index = face_ind
         self.link_segments = []
 
@@ -3208,7 +3210,7 @@ class InputPoint(object):  # NetworkNode
                 setattr(self, key, data[key])
              
     #note, does not duplicate connectivity data
-    def duplicate(self): return InputPoint(self.world_loc, self.local_loc, self.view, self.face_index)
+    def duplicate(self): return InputPoint(self.world_loc, self.local_loc, self.normal, self.view, self.face_index)
 
     def duplicate_data(self):
         data = {}
@@ -3340,9 +3342,9 @@ class InputNetwork(object): #InputNetwork
     point_views = property(point_views)
     point_face_indices = property(point_face_indices)
 
-    def create_point(self, world_loc, local_loc, view, face_ind):
+    def create_point(self, world_loc, local_loc, normal, view, face_ind):
         ''' create an InputPoint '''
-        self.points.append(InputPoint(world_loc, local_loc, view, face_ind, bmface = self.bme.faces[face_ind]))
+        self.points.append(InputPoint(world_loc, local_loc, normal, view, face_ind, bmface = self.bme.faces[face_ind]))
         return self.points[-1]
 
     def connect_points(self, p1, p2, make_path=True):
@@ -3533,10 +3535,11 @@ class CurveNode(object):  # CurveNetworkNode, basically identical to InputPoint
     '''
     Representation of an input point
     '''
-    def __init__(self, world, local, view, face_ind, seed_geom = None, bmface = None, bmedge = None, bmvert = None):
+    def __init__(self, world, local, normal, view, face_ind, seed_geom = None, bmface = None, bmedge = None, bmvert = None):
         self.world_loc = world
         self.local_loc = local
         self.view = view
+        self.normal = normal
         self.face_index = face_ind
         self.link_segments = []
         self.input_point = None
@@ -3556,6 +3559,7 @@ class CurveNode(object):  # CurveNetworkNode, basically identical to InputPoint
         
         ip = InputPoint(self.world_loc, 
                         self.local_loc, 
+                        self.normal,
                         self.view, 
                         self.face_index, 
                         self.seed_geom, 
@@ -3680,7 +3684,7 @@ class CurveNode(object):  # CurveNetworkNode, basically identical to InputPoint
             seg.is_inet_dirty = True
               
     #note, does not duplicate connectivity data
-    def duplicate(self): return InputPoint(self.world_loc, self.local_loc, self.view, self.face_index)
+    def duplicate(self): return InputPoint(self.world_loc, self.local_loc, self.normal, self.view, self.face_index)
 
     def duplicate_data(self):
         data = {}
@@ -3870,12 +3874,13 @@ class SplineSegment(object): #NetworkSegment
         end_pnt = ip1
         mx = net_ui_context.mx
         imx = net_ui_context.imx
+        mx_no = net_ui_context.mx_norm
         for ind in range(1,len(self.ip_tesselation)-1):
             pt = self.ip_tesselation[ind]
             view = self.ip_views[ind]
             loc, no, face_ind, d = net_ui_context.bvh.find_nearest(imx @ pt)
             f = input_network.bme.faces[face_ind]
-            new_pnt = InputPoint(mx @ loc, loc, view, face_ind, seed_geom = f, bmface = f)
+            new_pnt = InputPoint(mx @ loc, loc, mx_no @ no, view, face_ind, seed_geom = f, bmface = f)
             input_network.points.append(new_pnt)
             self.input_points += [new_pnt]
             
@@ -3914,7 +3919,7 @@ class SplineNetwork(object): #InputNetwork
         
         
         self.xform = XForm(Matrix.Identity(4))  #everything in world coords
-
+        
     def is_empty(self): return (not(self.points or self.segments))
     def num_points(self): return len(self.points)
     def num_segs(self): return len(self.segments)
@@ -3938,9 +3943,9 @@ class SplineNetwork(object): #InputNetwork
             if seg.is_inet_dirty or all_segs:
                 seg.convert_tessellation_to_network(net_ui_context, input_net)
         
-    def create_point(self, world_loc, local_loc, view, face_ind):
+    def create_point(self, world_loc, local_loc, normal, view, face_ind):
         ''' create an InputPoint '''
-        self.points.append(CurveNode(world_loc, local_loc, view, face_ind, bmface = self.bme.faces[face_ind]))
+        self.points.append(CurveNode(world_loc, local_loc, normal, view, face_ind, bmface = self.bme.faces[face_ind]))
         return self.points[-1]
 
     def connect_points(self, p1, p2, make_path=True):

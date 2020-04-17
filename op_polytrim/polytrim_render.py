@@ -51,7 +51,7 @@ from ..subtrees.addon_common.common.decorators import stats_wrapper
 from ..subtrees.addon_common.common import bmesh_render as bmegl
 from ..subtrees.addon_common.common.bmesh_render import triangulateFace, BufferedRender_Batch
 
-from ..subtrees.addon_common.common.colors import get_random_color
+from ..subtrees.addon_common.common.colors import get_random_color, colorname_to_color
 
 
 
@@ -65,10 +65,10 @@ from ..subtrees.addon_common.common.colors import get_random_color
 
 
 
-color_mesh = get_random_color()
-color_select = get_random_color()
+color_mesh = colorname_to_color['indigo']
+color_select = colorname_to_color['darkorange']
 edge_size = 2.0
-vert_size = 4.0
+vert_size = 8.0
 normal_offset_multiplier = 1.0
 constrain_offset = True
 
@@ -170,8 +170,8 @@ class SplineNetworkRender():
     #@profiler.function
     def _gather_data(self):
         
-        print('gathering data')
-        self.buffered_renders = []
+        #print('gathering data')
+        self.buffered_renders = []  #TODO, smart update only the buffers that need it
 
         def gather():
             vert_count = 100000
@@ -184,6 +184,10 @@ class SplineNetworkRender():
             def sel(g):
                 return 1.0 if g.select else 0.0
 
+            def sel_node(node):
+                
+                return 1.0 if node == self.spline_network.net_ui_context.selected else 0.0
+                
             try:
                 time_start = time.time()
 
@@ -221,48 +225,82 @@ class SplineNetworkRender():
                             self.add_buffered_render(bgl.GL_TRIANGLES, face_data)
 
                     if self.load_edges:
-                        print('loading edges')
+                        print('loading segements')
                         segs = self.spline_network.segments
-                        
-                        for seg in segs:
-                            node0 = seg.n0
-                            node1 = seg.n1
-                            no = - .5 * (node0.view + node1.view)
+                        def sel_seg(seg):
+                            if seg.bad_segment:
+                                return 1.0
+                            else:
+                                return 0.0
                             
-                            edge_data = {
-                                'vco': [
-                                    tuple(v)
-                                    for v in seg.draw_tessellation
-                                ],
-                                'vno': [
-                                    tuple(no)
-                                    for v in seg.draw_tessellation
-                                ],
-                                'sel': [
-                                    0.0
-                                    for v in seg.draw_tessellation
-                                ],
-                                'idx': None,  # list(range(len(self.bmesh.edges)*2)),
-                                }
-                           
-                            print(edge_data)
-                            #make a buffer per segment
-                            self.add_buffered_render(bgl.GL_LINES, edge_data)
+                        for seg in segs:
+                            
+                            if seg.is_inet_dirty:
+                                node0 = seg.n0
+                                node1 = seg.n1
+                                no = .5 * (node0.normal + node1.normal)
+                                
+                                edge_data = {
+                                    'vco': [
+                                        tuple(v)
+                                        for v in seg.draw_tessellation
+                                    ],
+                                    'vno': [
+                                        tuple(no)
+                                        for v in seg.draw_tessellation
+                                    ],
+                                    'sel': [
+                                        0.0
+                                        for v in seg.draw_tessellation
+                                    ],
+                                    'idx': None,  # list(range(len(self.bmesh.edges)*2)),
+                                    }
+                               
+                                #make a buffer per segment
+                                self.add_buffered_render(bgl.GL_LINES, edge_data)
+                                
+                            else:
+                                
+                                for ip_seg in seg.input_segments:
+                                    
+                                    if math.fmod(len(ip_seg.path),2) != 0:
+                                        vpath = ip_seg.path + [ip_seg.path[-1]]
+                                        npath =  [ip_seg.ip0.normal] + [f.normal for f in ip_seg.face_chain] + [ip_seg.ip1.normal]
+                                    else:
+                                        vpath = ip_seg.path
+                                        npath = [ip_seg.ip0.normal] + [f.normal for f in ip_seg.face_chain]
+                                    
+                                    edge_data = {
+                                    'vco': [
+                                        tuple(v)
+                                        for v in vpath
+                                    ],
+                                    'vno': [
+                                        tuple(v)
+                                        for v in npath
+                                    ],
+                                    'sel': [
+                                        0.0
+                                        for v in vpath
+                                    ],
+                                    'idx': None,  # list(range(len(self.bmesh.edges)*2)),
+                                    }
+                                
+                                    
+                                    self.add_buffered_render(bgl.GL_LINES, edge_data)
 
                     if self.load_verts:
-                        print('loading verts')
                         verts = self.spline_network.points
                         l = len(verts)
                         for i0 in range(0, l, vert_count):
                             i1 = min(l, i0 + vert_count)
                             vert_data = {
                                 'vco': [tuple(node.world_loc) for node in verts[i0:i1]],
-                                'vno': [tuple(node.view) for node in verts[i0:i1]],
-                                'sel': [0.0 for bmv in verts[i0:i1]],
+                                'vno': [tuple(node.normal) for node in verts[i0:i1]],
+                                'sel': [sel_node(bmv) for bmv in verts[i0:i1]],
                                 'idx': None,  # list(range(len(self.bmesh.verts))),
                             }
                             
-                            print(vert_data)
                             self.add_buffered_render(bgl.GL_POINTS, vert_data)
 
                 time_end = time.time()
@@ -329,9 +367,7 @@ class SplineNetworkRender():
         symmetry_effect=0.0, symmetry_frame: Frame=None
     ):
         self.clean()
-        if not self.buffered_renders:
-            print('no buffered renders')
-            return
+        if not self.buffered_renders: return
 
         try:
             bgl.glDepthMask(bgl.GL_FALSE)       # do not overwrite the depth buffer
