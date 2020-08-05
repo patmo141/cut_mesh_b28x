@@ -60,46 +60,70 @@ class Polytrim_UI_Init280(CookieCutter):
         self.main_menu_btn = ui.button(label='Menu', title = 'Back to main menu.', parent=self.main_menu, on_mouseclick=self.main_menu_options)
         self.EXIT_addon = ui.button(label='Close Tool', title = 'Exit the addon.', parent=self.main_menu, on_mouseclick=self.exit_addon)
 
+        
+
+
+
+        #spline menu
+        self.cut_workflow_container = ui.collection(label="Cut Workflow", parent = self.main_menu)
+        pick_seed = ui.button(label='Pick Seed', title = 'Pick Seed', parent=self.main_menu, on_mouseclick=self.launch_seed)
+        compute_cut = ui.button(label='Compute Cut', title = 'Compute Cut', parent=self.main_menu, on_mouseclick=self.compute_cut_button)
+        self.cut_workflow_container.builder([pick_seed, compute_cut])
+
         #spline menu
         self.ui_outline_container = ui.collection(label="Outline Properties", parent = self.main_menu)
-        o_create = ui.button(label='Create', title = 'Create region boundary.', parent=self.ui_outline_container, on_mouseclick=self.launch_spline_create)
-        o_edit = ui.button(label='Edit', title = 'Edit selected region boundary.', parent=self.ui_outline_container, on_mouseclick=self.tool_action)
-        o_save = ui.button(label='Save', title = 'Save region boundary as a spline in the scene.', parent=self.ui_outline_container, on_mouseclick=self.tool_action)
-        o_select = ui.button(label='Select', title = 'Select existing region boundary spline.', parent=self.ui_outline_container, on_mouseclick=self.tool_action)
+        o_create = ui.button(label='Draw/Edit Curves', title = 'Create region boundaries.', parent=self.ui_outline_container, on_mouseclick=self.launch_spline_create)
+        #o_edit = ui.button(label='Edit', title = 'Edit selected region boundary.', parent=self.ui_outline_container, on_mouseclick=self.tool_action)
+        #o_save = ui.button(label='Save', title = 'Save region boundary as a spline in the scene.', parent=self.ui_outline_container, on_mouseclick=self.tool_action)
+        #o_select = ui.button(label='Select', title = 'Select existing region boundary spline.', parent=self.ui_outline_container, on_mouseclick=self.tool_action)
+        
+        
+        #menu for after cutting
+        self.segmentation_menu = ui.div(id="segmentatino_menue", parent=self.main_menu, is_visible=True)
+        delete_patch = ui.button(label='Delete Patch', title = '(delete the active patch)', parent=self.segmentation_menu, on_mouseclick=self.delete_active_patch)
+        separate_patch = ui.button(label='Separate Patch', title = '(separate the active patch to new object)', parent=self.segmentation_menu, on_mouseclick=self.separate_active_patch)
+        duplicate_patch = ui.button(label='Duplicate Patch', title = '(Duplicate the active patch to new object)', parent=self.segmentation_menu, on_mouseclick=self.separate_active_patch)
+        
+        #TODO delete_non_patch = ui.button(label='Keep Patches', title = '(Delete all non-patch geometry)', parent=self.segmentation_menu, on_mouseclick=self.delete_non_patch')
+        self.segmentation_menu.builder([delete_patch, separate_patch, duplicate_patch])
+        
+        #spline_cancel = ui.button(label='Cancel', title = 'Cancel procedure.', parent=self.spline_create_menu, on_mouseclick=self.tool_action)
+        
+        
         
         #spline create sub-menu
-        self.spline_create_menu = ui.div(id="spline_create_menu", parent=self.ui_outline_container, is_visible=False)
-        spline_back = ui.button(label='Back', title = '(prev step description).', parent=self.spline_create_menu, on_mouseclick=self.tool_action)
-        spline_next = ui.button(label='Next', title = '(next step description).', parent=self.spline_create_menu, on_mouseclick=self.tool_action)
-        spline_cancel = ui.button(label='Cancel', title = 'Cancel procedure.', parent=self.spline_create_menu, on_mouseclick=self.tool_action)
+        #self.spline_create_menu = ui.div(id="spline_create_menu", parent=self.ui_outline_container, is_visible=False)
+        #spline_back = ui.button(label='Back', title = '(prev step description).', parent=self.spline_create_menu, on_mouseclick=self.tool_action)
+        #spline_next = ui.button(label='Next', title = '(next step description).', parent=self.spline_create_menu, on_mouseclick=self.tool_action)
+        #spline_cancel = ui.button(label='Cancel', title = 'Cancel procedure.', parent=self.spline_create_menu, on_mouseclick=self.tool_action)
 
-        self.ui_outline_container.builder([o_create, o_edit, o_save, o_select, self.spline_create_menu])
+        #self.ui_outline_container.builder([o_create, o_edit, o_save, o_select, self.spline_create_menu])
         
         
         #region menu
-        self.ui_region_container = ui.collection(label='Region Properties', parent = self.ui_main)
-        r_inward = ui.button(label='Select Inward', title = 'Select region enclosed by boundary.', parent=self.main_menu, on_mouseclick=self.tool_action)
-        r_outward = ui.button(label='Select Outward', title = 'Select everything outside of boundary.', parent=self.main_menu, on_mouseclick=self.tool_action)
-        r_grow = ui.button(label='Grow Selection', title = 'Increase boundary area with shape preserved.', parent=self.main_menu, on_mouseclick=self.tool_action)
-        r_shrink = ui.button(label='Shrink Selection', title = 'Decrease boundary area with shape preserved.', parent=self.main_menu, on_mouseclick=self.tool_action)
-        boundary_step = ui.labeled_input_text(label='Boundary Size Step', title='Integer property reflecting the step size when using Grow or Shrink Selection', value= self.variable_2)
-        self.ui_region_container.builder([r_inward, r_outward, r_grow, r_shrink, boundary_step])
+        #self.ui_region_container = ui.collection(label='Region Properties', parent = self.ui_main)
+        #r_inward = ui.button(label='Select Inward', title = 'Select region enclosed by boundary.', parent=self.main_menu, on_mouseclick=self.tool_action)
+        #r_outward = ui.button(label='Select Outward', title = 'Select everything outside of boundary.', parent=self.main_menu, on_mouseclick=self.tool_action)
+        #r_grow = ui.button(label='Grow Selection', title = 'Increase boundary area with shape preserved.', parent=self.main_menu, on_mouseclick=self.tool_action)
+        #r_shrink = ui.button(label='Shrink Selection', title = 'Decrease boundary area with shape preserved.', parent=self.main_menu, on_mouseclick=self.tool_action)
+        #boundary_step = ui.labeled_input_text(label='Boundary Size Step', title='Integer property reflecting the step size when using Grow or Shrink Selection', value= self.variable_2)
+        #self.ui_region_container.builder([r_inward, r_outward, r_grow, r_shrink, boundary_step])
 
-        ui_mesh_container = ui.collapsible("Mesh Properties", parent = self.ui_main, collapsed = False)
-        m_cut = ui.button(label='Cut Region', title = 'Copy the region into a new object and delete the selected region from existing mesh.', parent=ui_tools, on_mouseclick=self.tool_action)
-        m_copy = ui.button(label='Copy Region', title = 'Copy the region into a new object.', parent=ui_tools, on_mouseclick=self.tool_action)
-        m_delete = ui.button(label='Delete Region', title = 'Delete region from existing mesh. ', parent=ui_tools, on_mouseclick=self.tool_action)
-        ui_mesh_container.builder([m_cut, m_copy, m_delete])
+        #ui_mesh_container = ui.collapsible("Mesh Properties", parent = self.ui_main, collapsed = False)
+        #m_cut = ui.button(label='Cut Region', title = 'Copy the region into a new object and delete the selected region from existing mesh.', parent= self.ui_main, on_mouseclick=self.tool_action)
+        #m_copy = ui.button(label='Copy Region', title = 'Copy the region into a new object.', parent=self.ui_main, on_mouseclick=self.tool_action)
+        #m_delete = ui.button(label='Delete Region', title = 'Delete region from existing mesh. ', parent=self.ui_main, on_mouseclick=self.tool_action)
+        #ui_mesh_container.builder([m_cut, m_copy, m_delete])
 
         #mesh menu
-        self.ui_mesh_container = ui.collection(label="Mesh Properties", parent = self.ui_main)
-        m_cut = ui.button(label='Cut Region', title = 'Copy the region into a new object and delete the selected region from existing mesh.', parent=self.main_menu, on_mouseclick=self.tool_action)
-        m_copy = ui.button(label='Copy Region', title = 'Copy the region into a new object.', parent=self.main_menu, on_mouseclick=self.tool_action)
-        m_delete = ui.button(label='Delete Region', title = 'Delete region from existing mesh. ', parent=self.main_menu, on_mouseclick=self.tool_action)
-        self.ui_mesh_container.builder([m_cut, m_copy, m_delete])
+        #self.ui_mesh_container = ui.collection(label="Mesh Properties", parent = self.ui_main)
+        #m_cut = ui.button(label='Cut Region', title = 'Copy the region into a new object and delete the selected region from existing mesh.', parent=self.main_menu, on_mouseclick=self.tool_action)
+        #m_copy = ui.button(label='Copy Region', title = 'Copy the region into a new object.', parent=self.main_menu, on_mouseclick=self.tool_action)
+        #m_delete = ui.button(label='Delete Region', title = 'Delete region from existing mesh. ', parent=self.main_menu, on_mouseclick=self.tool_action)
+        #self.ui_mesh_container.builder([m_cut, m_copy, m_delete])
         
 
-
+ 
  
 
     def main_menu_options(self):
@@ -107,20 +131,32 @@ class Polytrim_UI_Init280(CookieCutter):
         self.ui_mesh_container.is_visible = True
         #self.main_menu_btn.is_visible = False
         self.spline_create_menu.is_visible = False
-        self.fsm.force_set_state("main")
+        self.fsm.force_set_state("main") #
 
     def launch_spline_create(self):
-        self.ui_region_container.is_visible = False
-        self.ui_mesh_container.is_visible = False
+        #self.ui_region_container.is_visible = False
+        #self.ui_mesh_container.is_visible = False
         #self.main_menu_btn.is_visible = True
-        self.spline_create_menu.is_visible = True
+        #self.spline_create_menu.is_visible = True
         self.fsm.force_set_state("spline main")
         
 
     def launch_seed(self):
-        self.fsm.force_set_state("seed main")
+        self.fsm.force_set_state("seed")
         
+    
+    def compute_cut_button(self):
+        self.network_cutter.knife_geometry4()
         
+        self.network_cutter.find_perimeter_edges()
+        for patch in self.network_cutter.face_patches:
+            patch.grow_seed(self.input_net.bme, self.network_cutter.boundary_edges, max_iters = self.seed_iterations)
+            patch.color_patch()
+        self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
+        
+        self.fsm.force_set_state('segmentation')
+        
+            
     def exit_addon(self):
         self.done(cancel = True)
         #self.fsm.force_set_state("EXIT_addon")

@@ -52,6 +52,7 @@ from ..subtrees.addon_common.common import bmesh_render as bmegl
 from ..subtrees.addon_common.common.bmesh_render import triangulateFace, BufferedRender_Batch
 
 from ..subtrees.addon_common.common.colors import get_random_color, colorname_to_color
+from ntpath import commonpath
 
 
 
@@ -120,7 +121,7 @@ class SplineNetworkRender():
 
     #what are all the opsts?
     
-    def __init__(self, spline_network, opts):
+    def __init__(self, spline_network, network_cutter, opts):
         
         self.load_verts = True #opts.get('load verts', True)
         self.load_edges = True #opts.get('load edges', True)
@@ -133,6 +134,7 @@ class SplineNetworkRender():
         self.drawing = Globals.drawing
 
         self.spline_network = spline_network
+        self.network_cutter = network_cutter
         #self.replace_rfmesh(rfmesh)
         self.replace_opts(opts)
 
@@ -173,6 +175,8 @@ class SplineNetworkRender():
         #print('gathering data')
         self.buffered_renders = []  #TODO, smart update only the buffers that need it
 
+        if self.network_cutter.knife_complete: return  #do something else
+        
         def gather():
             vert_count = 100000
             edge_count = 50000
@@ -240,35 +244,94 @@ class SplineNetworkRender():
                                 node1 = seg.n1
                                 no = .5 * (node0.normal + node1.normal)
                                 
+                                
+                                
+                                if math.fmod(len(seg.draw_tessellation),2) != 0:
+                                    vpath = seg.draw_tessellation + [seg.draw_tessellation[-1]]
+                                else:
+                                    vpath = seg.draw_tessellation    
                                 edge_data = {
                                     'vco': [
                                         tuple(v)
-                                        for v in seg.draw_tessellation
+                                        for v in vpath #seg.draw_tessellation
                                     ],
                                     'vno': [
                                         tuple(no)
-                                        for v in seg.draw_tessellation
+                                        for v in vpath
                                     ],
                                     'sel': [
                                         0.0
-                                        for v in seg.draw_tessellation
+                                        for v in vpath
                                     ],
                                     'idx': None,  # list(range(len(self.bmesh.edges)*2)),
                                     }
                                
-                                #make a buffer per segment
-                                self.add_buffered_render(bgl.GL_LINES, edge_data)
                                 
+                                #make a buffer per segment
+                                try:
+                                    self.add_buffered_render(bgl.GL_LINES, edge_data)
+                                except:
+                                    print('failed to add edge data')
+                                    print((len(edge_data['vco']), len(edge_data['vno']), len(edge_data['sel'])))
                             else:
                                 
                                 for ip_seg in seg.input_segments:
                                     
-                                    if math.fmod(len(ip_seg.path),2) != 0:
-                                        vpath = ip_seg.path + [ip_seg.path[-1]]
-                                        npath =  [ip_seg.ip0.normal] + [f.normal for f in ip_seg.face_chain] + [ip_seg.ip1.normal]
+                                    print(len(ip_seg.path))
+                                    print(ip_seg.bad_segment)
+                                    #print(ip_seg in parent.network_cutter.completed_segments)
+                                    print(ip_seg.calculation_complete)
+                                    #OK!  this line drawing is simulating the path as quads
+                                    #So it needs an even number of verts for some reason (I think)
+                                    
+                                    #bad segment, no path
+                                    if ip_seg.bad_segment and not len(ip_seg.path) > 2:
+                                        print('Bad segment')
+                                        vpath = [ip_seg.ip0.world_loc, ip_seg.ip1.world_loc]
+                                        npath = [-ip_seg.ip0.normal, -ip_seg.ip1.normal]
+                                        sel = [0.0, 0.0]
+
+                                    #segmnet has been calculated successfully    
+                                    elif len(ip_seg.path) >= 2 and not ip_seg.bad_segment and ip_seg.calculation_complete: #ip_seg in parent.network_cutter.completed_segments:
+                                        print('good segment')
+                                        #draw3d_polyline(seg.path,  green2, 2, view_loc, view_ortho)    
+                                        if math.fmod(len(ip_seg.path),2) != 0:
+                                            vpath = ip_seg.path + [ip_seg.path[-1]]
+                                            npath =  [ip_seg.ip0.normal] + [f.normal for f in ip_seg.face_chain] + [ip_seg.ip1.normal]
+                                        else:
+                                            vpath = ip_seg.path
+                                            npath = [ip_seg.ip0.normal] + [f.normal for f in ip_seg.face_chain]
+                                            
+                                        sel = [1.0 for v in vpath]  #need a better way to draw stuff
+                                    
+                                    #not finished calculating    
+                                    elif ip_seg.calculation_complete == False:  #not in self.newtork_cutter.compelted_segments?
+                                        print('calculation incomplete')
+                                        #draw3d_polyline([seg.ip0.world_loc, seg.ip1.world_loc], orange2, 2, view_loc, view_ortho)
+                                        vpath = [ip_seg.ip0.world_loc, ip_seg.ip1.world_loc]
+                                        npath = [-ip_seg.ip0.normal, -ip_seg.ip1.normal]
+                                        sel = [0.5, 0.5]  #no idea if this is allowed.  But would like this to be a different color
+                                    
+                                    #a segment which has not been completely cut but does have an ip path??
+                                    #elif len(ip_seg.path) >= 2 and not ip_seg.bad_segment and ip_seg not in self.network_cutter.completed_segments:
+                                        #draw3d_polyline(seg.path,  blue, 2, view_loc, view_ortho)
+                                    #    vpath = 
+                                    #    npath
+                                    #    sel
+                                    
+                                    
+                                    #Not sure what else there is but it seems I'm getting an else
                                     else:
-                                        vpath = ip_seg.path
-                                        npath = [ip_seg.ip0.normal] + [f.normal for f in ip_seg.face_chain]
+                                        print('other unknown situation!')
+                                        #draw3d_polyline([seg.ip0.world_loc, seg.ip1.world_loc], blue2, 2, view_loc, view_ortho)
+                                        vpath = [ip_seg.ip0.world_loc, ip_seg.ip1.world_loc]
+                                        npath = [-ip_seg.ip0.normal, -ip_seg.ip1.normal]
+                                        sel = [1.0, 1.0]
+                                    
+                                    if len(vpath) != len(npath):
+                                        print('Length mismatch problem')
+                                        print((len(vpath),len(npath)))
+                                        continue
                                     
                                     edge_data = {
                                     'vco': [
@@ -279,14 +342,13 @@ class SplineNetworkRender():
                                         tuple(v)
                                         for v in npath
                                     ],
-                                    'sel': [
-                                        0.0
-                                        for v in vpath
-                                    ],
+                                    'sel': sel, #hack "selected" as a way to show good segments?
                                     'idx': None,  # list(range(len(self.bmesh.edges)*2)),
                                     }
                                 
                                     
+                                    
+                                    print((len(edge_data['vco']), len(edge_data['vno'])))
                                     self.add_buffered_render(bgl.GL_LINES, edge_data)
 
                     if self.load_verts:

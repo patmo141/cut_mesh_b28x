@@ -230,17 +230,17 @@ class BMFacePatch(object):
             return True
             
             
-    def grow_seed(self, bme, boundary_edges):
+    def grow_seed(self, bme, boundary_edges, max_iters = 10000):
         #if we are re-growing our seed,
         if len(self.patch_faces)  != 0:
             self.un_color_patch()
-        island = flood_selection_edge_loop(bme, boundary_edges, self.seed_face, max_iters = 10000)
+        island = flood_selection_edge_loop(bme, boundary_edges, self.seed_face, max_iters = max_iters)
         self.patch_faces = island
         
-    def grow_seed_faces(self, bme, boundary_faces):
+    def grow_seed_faces(self, bme, boundary_faces, max_iters = 10000):
         if len(self.patch_faces)  != 0:
             self.un_color_patch()
-        island = flood_selection_faces(bme, boundary_faces, self.seed_face)
+        island = flood_selection_faces(bme, boundary_faces, self.seed_face, max_iters = max_iters)
         island -= boundary_faces  #because boundary_faces are between all segments
         self.patch_faces = island
     
@@ -407,12 +407,21 @@ class NetworkCutter(object):
     ###########################################
     ####### Pre Cut Commit Functions  #########
     ###########################################
-        
+    
+    
+    def all_done(self): 
+        return not all([self.executre_tasks[seg].done() for seg in self.input_net.segments])
+    
+    def clear_done(self):
+        for seg in self.input_net.segments:
+            if self.executor_tasks[seg].done():
+                del self.executor_tasks[seg]  
+                
+                
     def update_segments(self):
         for seg in self.input_net.segments:
             if seg.needs_calculation and not seg.calculation_complete:
                 self.precompute_cut(seg)
-                
         return
     
     def update_segments_async(self):
@@ -427,10 +436,34 @@ class NetworkCutter(object):
                 #TODO check for existing task
                 #TODO if still computing, cancel it
                 #start a new task
-                future = self.executor.submit(self.precompute_cut, (seg))
+                future = self.executor.submit(self.precompute_cut, (seg))  #TODO, add callback to build the shader for this segment!
                 
                 self.executor_tasks[seg] = future  
         return
+    
+    def find_orphans(self, auto_fix = True):
+        orphans = []
+        for seg in self.input_net.segments:
+            if seg.needs_calculation == False and seg.calculation_complete == False:
+                if seg.is_bad:
+                    print('found a bad segment, and calculation is not complete')
+                print('either in progress or failed')
+                if seg in self.executor_tasks:
+                    task = self.executor_tasks[seg]
+                    if task.done():
+                        print('we found an orphan where the task is done why')
+                        print(seg.cut_method)
+                        orphans.append(seg)
+        
+        print('found %i orphans'  % len(orphans))
+        #try and recompute orphans
+        for oseg in orphans:
+            if auto_fix:
+                future = self.executor.submit(self.precompute_cut, (oseg))
+                self.executor_tasks[oseg] = future    
+            
+            else:
+                oseg.bad_segment = True
     
     def validate_cdata(self):
         old_cdata = []
@@ -2993,8 +3026,10 @@ class NetworkCutter(object):
     def add_seed(self, face_ind, world_loc, local_loc):
         
         if self.knife_complete:
+            print('add seed psot cut polytrim datastructure')
             self.add_seed_post_cut(face_ind, world_loc, local_loc)
         else:
+            print('add seed pre cut polytrim datastructure')
             self.add_seed_pre_cut(face_ind, world_loc, local_loc)
             
             
@@ -3134,8 +3169,8 @@ class NetworkCutter(object):
         new_patch.color_patch()
         self.face_patches += [new_patch]
         
-        
-        self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
+        self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)  #TODO this might be better suited in teh states file? Forcing an update this deep in the code is stupid
+        self.net_ui_context.ob.data.update()
     
     
     def add_patch_start_paint(self, face_ind, world_loc, local_loc):

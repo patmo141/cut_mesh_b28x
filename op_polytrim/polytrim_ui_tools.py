@@ -790,6 +790,64 @@ class Polytrim_UI_Tools():
         self.network_cutter.validate_cdata()
         return p
     
+    def split_bad_spline_segments(self):
+        mx = self.net_ui_context.mx
+        imx = self.net_ui_context.imx
+        bvh = self.net_ui_context.bvh
+        bme = self.net_ui_context.bme
+        #collect bad segments
+        bad_segs = []
+        for sseg in self.spline_net.segments:
+            
+            for iseg in sseg.input_segments:
+                if iseg.is_bad:
+                    bad_segs.append(sseg)
+                    break  #break if any input segement belonging to spline segment is bad
+        
+        #split them in the middle 
+        new_nodes = []
+        recalc_nodes = []      
+        for seg in bad_segs:
+            midpt = .5 * (seg.n0.world_loc + seg.n1.world_loc)
+            mid_view = .5 * (seg.n0.view + seg.n1.view)
+            
+            loc, no, idx, d = self.net_ui_context.bvh.find_nearest(imx @ midpt)
+            
+            if loc:
+                if (loc - seg.n0.world_loc).length < 0.5: 
+                    print("recursive snap")
+                    continue
+                if (loc - seg.n1.world_loc).length < 0.5:
+                    print("recursive snap")
+                    continue
+                
+                node_mid = self.spline_net.create_point(mx @ loc, 
+                                                        loc, 
+                                                        mid_view, 
+                                                        self.net_ui_context.mx_norm @ no,
+                                                        idx)
+                           
+                recalc_nodes += [seg.n0, node_mid, seg.n1]
+                new_nodes += [node_mid]
+                self.spline_net.insert_point(node_mid, seg)
+                seg.clear_input_net_references(self.input_net)
+                
+        for node in recalc_nodes:
+            node.calc_handles()
+        
+        #n00 ----- n0 ------ p ------ n1-----n11 
+        for node in new_nodes:  #only want to affect the splines within, not outside of the bad seg
+            node.update_splines()
+            
+        self.spline_net.push_to_input_net(self.net_ui_context, self.input_net)
+        self.network_cutter.update_segments_async()
+        self.network_cutter.validate_cdata()  
+        
+    def find_problems(self):
+        self.hint_bad = self.hint_bad == False
+        self.network_cutter.find_orphans(auto_fix = False)
+        return   
+    
     def ray_cast_source(self, p2d, in_world=True):
         context = self.context
         view_vector, ray_origin, ray_target = get_view_ray_data(context, p2d)
@@ -1276,7 +1334,7 @@ class Polytrim_UI_Tools():
     
     
         if self.network_cutter.active_patch == None: return
-        if self._state != 'segmentation': return
+        if self.fsm.state != 'segmentation': return  #TODO  also dumb, should not be checking state stuff in the tools section
         #for now, use an active patch input style
         #if self.net_ui_context.hovered_mesh == {}: return
         #face_ind = self.net_ui_context.hovered_mesh['face index']
@@ -1319,7 +1377,7 @@ class Polytrim_UI_Tools():
     
     
         if self.network_cutter.active_patch == None: return
-        if self._state != 'segmentation': return
+        if self.fsm.state != 'segmentation': return
         #for now, use an active patch input style
         #if self.net_ui_context.hovered_mesh == {}: return
         #face_ind = self.net_ui_context.hovered_mesh['face index']
@@ -1402,7 +1460,7 @@ class Polytrim_UI_Tools():
         new_ob.matrix_world = self.net_ui_context.mx
         new_bme.to_mesh(new_me)
         new_bme.free()
-        bpy.context.scene.objects.link(new_ob)
+        bpy.context.scene.collection.objects.link(new_ob)
                 
         bme = self.net_ui_context.bme 
 
@@ -1439,7 +1497,7 @@ class Polytrim_UI_Tools():
         new_ob.matrix_world = self.net_ui_context.mx
         new_bme.to_mesh(new_me)
         new_bme.free()
-        bpy.context.scene.objects.link(new_ob)
+        bpy.context.scene.collection.objects.link(new_ob)
         
         self.network_cutter.active_patch = None
         self.network_cutter.face_patches.remove(patch)
@@ -1541,15 +1599,15 @@ class Polytrim_UI_Tools():
         return (None, None)
 
     def enter_poly_mode(self):
-        if self._state == 'main': return
+        if self.fsm.state == 'main': return
         
-        if self._state == 'paint main':
+        if self.fsm.state == 'paint main':
             del self.brush
             self.brush = None
             self.paint_exit()
             self.fsm_change('main')
     
-        elif self._state == 'seed':
+        elif self.fsm.state == 'seed':
             self.fsm_change('main')
             
             

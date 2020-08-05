@@ -78,7 +78,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
     @CookieCutter.FSM_State('spline main', 'enter')
     def spline_enter(self):
         self.create_points_batch()
-        self.polytrim_render._gather_data()
+        self.polytrim_render._gather_data() #stupid that I'm passing "self" to this
         tag_redraw_all('spline_enter')
         
     @CookieCutter.FSM_State('spline main')
@@ -100,6 +100,13 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
 
         if self.actions.pressed('cancel'):
             self.main_menu_options()
+            
+            
+        if self.actions.pressed('redraw'):
+            self.create_points_batch()
+            self.polytrim_render._gather_data()
+            tag_redraw_all('delete point')
+            return 'spline main'
 
         mouse_just_stopped = self.actions.mousemove_prev and not self.actions.mousemove
         if mouse_just_stopped:
@@ -164,7 +171,37 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             #self.ui_text_update()
             return
 
-
+        
+        if self.actions.timer and self.autofix_max_attempts > 0:
+            
+            #make sure we aren't checking constantly
+            
+            dt = time.time() - self.last_bad_check
+            if dt < 1.5: return
+            
+            self.last_bad_check = time.time()
+            
+            #don't keep recursively dividing segments
+            if self.check_depth > self.autofix_max_attempts: 
+                print('maxed out number of checks')
+                return
+            
+            #need all segments to be attempted before trying
+            if not all([seg.calculation_complete for seg in self.input_net.segments]):
+                print('still processing')
+                return
+            
+            #if all segments are good...
+            if not any([seg.is_bad for seg in self.input_net.segments]):
+                if self.check_depth != 0:
+                    print('solved all the problems!')
+                    self.check_depth = 0
+                return
+            
+            #ok, now we can attempt to bisect bad segment 
+            
+            self.check_depth += 1
+            self.split_bad_spline_segments()
     #--------------------------------------
     # spline select (this is the oddball, but becaue sketching and grabbing are states, we made "select" a
     # state that then can be entered and existed quickly or push the unser into tweaking/grab
@@ -233,7 +270,13 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             if isinstance(self.net_ui_context.selected, CurveNode):
                 self.spline_net.push_to_input_net(self.net_ui_context, self.input_net)
                 self.network_cutter.update_segments_async()
+                
+                self.create_points_batch()
+                self.polytrim_render._gather_data()
                 tag_redraw_all('update segments')
+                
+                
+        
             else:
                 self.network_cutter.update_segments()
         #self.ui_text_update()
@@ -393,6 +436,10 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         if isinstance(self.net_ui_context.selected, CurveNode):
             self.spline_net.push_to_input_net(self.net_ui_context, self.input_net)
             self.network_cutter.update_segments_async()
+            
+            self.create_points_batch()
+            self.polytrim_render._gather_data()
+    
             tag_redraw_all('update segments')
         else:
             self.network_cutter.update_segments()
@@ -462,7 +509,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         tag_redraw_all('sketch exit')
 
 
-    @CookieCutter.FSM_State('seed main')
+    @CookieCutter.FSM_State('seed')
     def modal_seed(self):
         self.cursor_modal_set('EYEDROPPER')
 
@@ -481,10 +528,40 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
 
 
 
+    @CookieCutter.FSM_State('seed', 'can enter')
+    def seed_can_enter(self):
+        print('seed can enter')
+        # enter seed mode iff there is at least one cycle
+        ip_cyc, seg_cyc = self.input_net.find_network_cycles()
+        return len(ip_cyc) > 0
+
+    @CookieCutter.FSM_State('seed', 'enter')
+    def seed_enter(self):
+        print('seed enter!')
+        if self.network_cutter.knife_complete:
+            self.network_cutter.find_perimeter_edges()
+        else:
+            self.network_cutter.find_boundary_faces_cycles()
+            print('found boundary face cycles!')
+        
+        tag_redraw_all('seed enter')
+        
+        #self.seed_fsm.reset()
+        #self.ui_text_update()
+
+    @CookieCutter.FSM_State('seed', 'exit')
+    def seed_exit(self):
+        pass
+        #self.seed_fsm.reset()
+        #self.ui_text_update()
+        # if not self.network_cutter.knife_complete:
+        #    #assoccates SplineNetwork and InputNetwork elements with patches
+        #     self.network_cutter.update_spline_edited_patches(self.spline_net)
+
     ######################################################
     # segmentation state
 
-    @CookieCutter.FSM_State('seg main')
+    @CookieCutter.FSM_State('segmentation')
     def modal_segmentation(self):
         self.cursor_modal_set('CROSSHAIR')
 
@@ -506,7 +583,25 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             #remove the seed
             #remove any "patch" data associated with the seed
 
+    #Segmentation State (Delete, Split,Duplicate)
+    @CookieCutter.FSM_State('segmentation', 'can enter')
+    def segmentation_can_enter(self):
+        return True
+        #return self.network_cutter.knife_complete??
 
+    @CookieCutter.FSM_State('segmentation', 'enter')
+    def segmentation_enter(self):
+        if not self.network_cutter.knife_complete:
+            self.network_cutter.knife_geometry4()
+            self.network_cutter.find_perimeter_edges()
+            for patch in self.network_cutter.face_patches:
+                patch.grow_seed(self.input_net.bme, self.network_cutter.boundary_edges)
+                patch.color_patch()
+                self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
+                self.net_ui_context.ob.data.update()
+        #self.ui_text_update()
+
+   
 
     ######################################################
     # region painting

@@ -3,6 +3,8 @@ Created on Oct 8, 2015
 
 @author: Patrick
 '''
+import time
+
 import bpy
 
 from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
@@ -53,6 +55,7 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         # key: a human-readable label
         # val: a str or a set of strings representing the user action
         'action': {'LEFTMOUSE'},
+        'redraw':{'D'},
         'sketch': {'SHIFT+LEFTMOUSE'},
         'select': {'LEFTMOUSE'},
         'connect': {'LEFTMOUSE'},
@@ -123,6 +126,12 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.brush = None
         self.brush_radius = 1.5
         
+        self.check_depth = 0
+        self.autofix_max_attempts = 2  #will subdivide and attempt to fix bad segments
+        self.last_bad_check = time.time()
+        self.seed_iterations = 10000
+        
+        
         #get from preferences or override
         #TODO maybe have a "preferences" within the segmentation operator
         self.spline_preview_tess = prefs.spline_preview_tess
@@ -131,7 +140,9 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.spline_tessellation_epsilon = prefs.spline_tessellation_epsilon
 
 
-        self.polytrim_render = SplineNetworkRender(self.spline_net, render_opts)
+        self.polytrim_render = SplineNetworkRender(self.spline_net, 
+                                                   self.network_cutter, 
+                                                   render_opts)
         
         
         self.setup_ui()
