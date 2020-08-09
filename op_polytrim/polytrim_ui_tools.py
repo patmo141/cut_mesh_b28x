@@ -15,7 +15,7 @@ from .polytrim_datastructure import InputNetwork, InputPoint, InputSegment, Spli
 
 import bgl
 from bpy_extras import view3d_utils
-from mathutils import Vector, kdtree, Color
+from mathutils import Vector, kdtree, Color, Matrix
 from mathutils.geometry import intersect_point_line
 from mathutils.bvhtree import BVHTree
 
@@ -181,7 +181,6 @@ class Polytrim_UI_Tools():
             for btess in cbs.tessellation:
                 self.bez_data += [pt.as_vector() for i,pt,d in btess]
 
-
     class PaintBrush():  #TODO replace with widget, this is a coars placeholder
         #active patch?  meaning we are updating a selection
         def __init__(self, net_ui_context, radius=1.5, color=(0.8, 0.1, 0.3)):
@@ -308,9 +307,6 @@ class Polytrim_UI_Tools():
             bgl.glDepthFunc(bgl.GL_LEQUAL)
             bgl.glDepthMask(bgl.GL_TRUE)
             bgl.glDepthRange(0, 1)
-
-
-
 
     class GrabManager():
         '''
@@ -725,7 +721,6 @@ class Polytrim_UI_Tools():
             self.net_ui_context.selected = point
             self.network_cutter.update_segments()
 
-
     def add_spline(self, endpoint0, endpoint1):
         assert endpoint0.is_endpoint and endpoint1.is_endpoint
         seg = SplineSegment(endpoint0, endpoint1)
@@ -752,15 +747,21 @@ class Polytrim_UI_Tools():
         #add an input node on non manifold edge of mesh
         if self.net_ui_context.hovered_near[0] and 'NON_MAN' in self.net_ui_context.hovered_near[0]:
             bmed, wrld_loc = self.net_ui_context.hovered_near[1]
-            p = self.spline_net.create_point(wrld_loc,imx @ wrld_loc, self.net_ui_context.mx_norm @ bmed.link_faces[0].normal,view_vector, bmed.link_faces[0].index)
+            p = self.spline_net.create_point(wrld_loc,imx @ wrld_loc, 
+                                             self.net_ui_context.mx_norm @ bmed.link_faces[0].normal,
+                                             view_vector, 
+                                             bmed.link_faces[0].index)
             p.seed_geom = bmed
             p.bmedge = bmed #UNUSED, but preparing for future
         else:
-            p = self.spline_net.create_point(mx @ loc, loc, self.net_ui_context.mx_norm @ no, view_vector, face_ind)
+            p = self.spline_net.create_point(mx @ loc, 
+                                             loc, 
+                                             self.net_ui_context.mx_norm @ no,
+                                              view_vector, 
+                                              face_ind)
 
         return p
-    
-    
+     
     def insert_spline_point(self, p2d):
         mx = self.net_ui_context.mx
         imx = self.net_ui_context.imx
@@ -823,8 +824,8 @@ class Polytrim_UI_Tools():
                 
                 node_mid = self.spline_net.create_point(mx @ loc, 
                                                         loc, 
-                                                        mid_view, 
                                                         self.net_ui_context.mx_norm @ no,
+                                                        mid_view, 
                                                         idx)
                            
                 recalc_nodes += [seg.n0, node_mid, seg.n1]
@@ -945,6 +946,149 @@ class Polytrim_UI_Tools():
             cn = self.net_ui_context.selected
             print(cn.link_segments)
             print(cn.bmface)
+        
+    
+    def cache_to_bmesh(self):
+        '''
+        saves polytrim newtork nodes to bmesh and mesh
+        object.
+        '''
+        bme_cache = bmesh.new()
+        node_to_bmv = {}
+        
+        
+        if self.load_ob_name not in bpy.data.objects:
+            load_me = bpy.data.meshes.new(self.load_ob_name)
+            load_ob = bpy.data.objects.new(self.load_ob_name, load_me)
+            bpy.context.scene.collection.objects.link(load_ob)
+            
+            edge_point_group = load_ob.vertex_groups.new(name = 'edgpoints')
+            
+            load_ob.parent = self.net_ui_context.ob  
+            load_ob.matrix_world = Matrix.Identity(4) #RESET MATRIX?
+        else:
+            load_ob = bpy.data.objects.get(self.load_ob_name)
+            load_me = load_ob.data
+            edge_point_group = load_ob.vertex_groups.get('edgpoints')
+            
+            
+        #edge_id = bme_cache.verts.layers.int.new('edgepoint')
+        mx = load_ob.matrix_world
+        imx = mx.inverted()
+        
+        mx_norm = imx.transposed().to_3x3() #local directions to global
+        imx_norm = imx.to_3x3() #global direction to local
+        
+        edgepoints = set()
+        for node in self.spline_net.points:
+            
+            bmv = bme_cache.verts.new(imx @ node.world_loc)
+            bmv.normal = imx_norm @ node.view
+            node_to_bmv[node] = bmv
+            
+            if node.is_edgepoint():
+                edgepoints.add(bmv)
+            #    bmv[edge_id] = 1
+            #else:
+            #    bmv[edge_id] = 0
+        for seg in self.spline_net.segments:
+            bmv0 = node_to_bmv[seg.n0]
+            bmv1 = node_to_bmv[seg.n1]
+            
+            bme_cache.edges.new((bmv0, bmv1))
+            
+        
+        
+        load_ob.hide_set(True)
+        bme_cache.verts.ensure_lookup_table()
+        bme_cache.verts.index_update()
+        
+            
+        bme_cache.to_mesh(load_me)
+        edgepoint_inds = [bmv.index for bmv in edgepoints]
+        edge_point_group.remove([i for i in range(0, len(bme_cache.verts))])
+        edge_point_group.add(edgepoint_inds, 1, type = 'REPLACE')
+        bme_cache.free()
+        
+    def load_from_bmesh(self):
+        '''
+        loads polytrim network from bmesh data
+        '''
+        
+        
+        #need to add customizable keys
+        
+        #self.load_ob_name = 'Splint Margin'
+        
+        #edge_id = bme_cache.verts.layers.int['edgepoint']
+        if self.load_ob_name not in bpy.data.objects:
+            return
+        
+        #margin_ob = bpy.data.objects.get('Splint Margin')
+        load_ob = bpy.data.objects.get(self.load_ob_name)
+        load_me = load_ob.data
+        vg = load_ob.vertex_groups.get('edgepoints')
+        
+        #edge_id = bme_cache.verts.layers.int.new('edgepoint')
+        mx = load_ob.matrix_world
+        imx = mx.inverted()
+        
+        mx_norm = imx.transposed().to_3x3() #local directions to global
+        imx_norm = imx.to_3x3() #global direction to local
+        
+         
+        bme_cache = bmesh.new()
+        bme_cache.verts.ensure_lookup_table()
+        bme_cache.edges.ensure_lookup_table()
+          
+        bme_cache.from_mesh(load_me)
+        bmv_to_node = {}
+        
+        #assumes only one vertex group
+        edgepoint_inds = [v.index for v in load_ob.data.vertices if v.groups]
+        
+        for bmv in bme_cache.verts:
+            
+            world_loc = mx  @ bmv.co
+            local_loc = bmv.co
+            
+            snap_loc, no, ind, d = self.net_ui_context.bvh.find_nearest(local_loc)
+            snap_wrld_loc = self.net_ui_context.mx @ snap_loc
+            f = self.net_ui_context.bme.faces[ind]
+    
+            node = self.spline_net.create_point(snap_wrld_loc, 
+                                                snap_loc, 
+                                                mx_norm @ no, #we found the normal from the snapping
+                                                mx_norm @ bmv.normal, #remember that the view was stored in the bmvert normal
+                                                ind)
+            if bmv.index in edgepoint_inds:
+                def intersect_d(ed):
+                    inter, d = intersect_point_line(snap_loc, ed.verts[0].co, ed.verts[1].co)  #TODO CHECK BVH FOR LOCAL/WORLD COORDS
+                    d_inter = (inter - snap_loc).length
+                    return d_inter
+                    
+                closest_edge = min(f.edges[:], key = intersect_d)
+                node.seed_geom = closest_edge
+            bmv_to_node[bmv] = node
+        
+        for ed in bme_cache.edges:
+            n0 = bmv_to_node[ed.verts[0]]  
+            n1 = bmv_to_node[ed.verts[1]]
+            
+            self.spline_net.connect_points(n0, n1)
+            
+            
+        bme_cache.free()
+        for node in self.spline_net.points:
+            node.calc_handles()
+            
+        for seg in self.spline_net.segments:
+            seg.calc_bezier()
+            seg.tessellate()
+            seg.tessellate_IP_error(.1)
+            
+        self.spline_net.push_to_input_net(self.net_ui_context, self.input_net)    
+        self.network_cutter.update_segments_async()
         
     # TODO: Clean this up
     def click_delete_point(self, mode = 'mouse', disconnect=False):
@@ -1423,8 +1567,8 @@ class Polytrim_UI_Tools():
         
         patch = self.newtork_cutter.active_patch    
         
-        patch.find_boundary_edges()  #this should probbaly happen at regino growing time anyway
-        
+        #patch.find_boundary_edges(self.input_net.bme)  #this should probbaly happen at regino growing time anyway
+        patch.find_all_boundary_edges()
         bme = self.net_ui_context.bme 
         eds = patch.find_all_boundary_edges()
         bmesh.ops.split_edges(bme, eges = list(eds))
@@ -1432,8 +1576,7 @@ class Polytrim_UI_Tools():
         self.newtork_cutter.active_patch = None    
         self.network_cutter.face_patches.remove(patch)
         self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
-    
-    
+       
     def separate_active_patch(self):
     
     
@@ -1502,9 +1645,7 @@ class Polytrim_UI_Tools():
         self.network_cutter.active_patch = None
         self.network_cutter.face_patches.remove(patch)
         self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data) 
-        
-        
-               
+                    
     def closest_endpoint(self, pt3d):
         def dist3d(point):
             return (point.world_loc - pt3d).length
@@ -1515,6 +1656,7 @@ class Polytrim_UI_Tools():
         return min(endpoints, key = dist3d)
     
     # TODO: Make this a NetworkUIContext function
+    
     def closest_spline_endpoint(self, pt3d):
         def dist3d(point):
             return (point.world_loc - pt3d).length
@@ -1557,6 +1699,7 @@ class Polytrim_UI_Tools():
         return endpoints[0:n_points+1]
 
     # TODO: NetworkUIContext??
+    
     def closest_point_3d_linear(self, seg, pt3d):
         '''
         will return the closest point on a straigh line segment
@@ -1634,13 +1777,57 @@ class Polytrim_UI_Tools():
         self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
         
         self._sate_next = 'segmentation'
+    
+    ###################################################
+    ########  State/Mode Changing Functions    ########
+    ###################################################
         
     def enter_seed_select_button(self):
         self.fsm_change('seed')
         self.cursor_modal_set('EYEDROPPER')
         return
     
-       
+    def seed_to_spline(self):  
+        '''
+        used to go backward from seed to boundary editing
+        '''
+
+        #clear out the face patches
+        ps = [p for p in self.network_cutter.face_patches]
+        for p in ps:
+            p.un_color_patch()
+            self.network_cutter.face_patches.remove(p)
+        
+        #Do this for now
+        self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
+        
+    def segmentation_to_spline(self):
+        '''
+        clear data, remake bme, and go back to spline mode
+        '''
+        self.end_cancel()
+        
+        #clear out the datastructures
+        del self.net_ui_context
+        del self.input_net
+        del self.spline_net
+        del self.network_cutter
+        del self.sketcher
+        del self.grabber
+        
+        #re-initialize data structures
+        self.net_ui_context = self.NetworkUIContext(self.context, geometry_mode = "NON_DESTRUCTIVE")
+        self.input_net = InputNetwork(self.net_ui_context)
+        self.spline_net = SplineNetwork(self.net_ui_context)
+        self.network_cutter = NetworkCutter(self.input_net, self.net_ui_context)
+        self.sketcher = self.SketchManager(self.input_net, self.spline_net, self.net_ui_context, self.network_cutter)
+        self.grabber = self.GrabManager(self.input_net, self.net_ui_context, self.network_cutter)
+
+        self.check_depth = 0
+        self.last_bad_check = time.time()
+        
+        #self.load_from_bmesh()  #happens automatically!?
+                 
     def hover(self, select_radius = 12, snap_radius = 24): #TDOD, these radii are pixels? Shoudl they be settings?
         '''
         finds points/edges/etc that are near ,mouse
@@ -1755,7 +1942,6 @@ class Polytrim_UI_Tools():
 
         self.net_ui_context.nearest_non_man_loc()
 
-
     def hover_spline(self, select_radius=12, snap_radius=24): #TODO, these radii are pixels? Should they be settings?
         '''
         finds points/edges/etc that are near ,mouse
@@ -1851,7 +2037,6 @@ class Polytrim_UI_Tools():
 
         self.net_ui_context.nearest_non_man_loc()
 
-
     def hover_patches(self): #TODO, these radii are pixels? Should they be settings?
         '''
         finds the patch associated under the mouse
@@ -1887,11 +2072,11 @@ class Polytrim_UI_Tools():
         else:
             self.net_ui_context.hovered_near = [None, None]
             
-    
     def end_commit(self):
         print('end commit')
         if self.net_ui_context.geometry_mode == 'DESTRUCTIVE':
             bpy.data.meshes.remove(self.net_ui_context.backup_data)
+            #TODO @Joash destroy the cache/load_ob
             
         else:
             del_data = self.net_ui_context.ob.data
@@ -1904,6 +2089,11 @@ class Polytrim_UI_Tools():
         print('end cancel')
         del_data = self.net_ui_context.ob.data  #remember we swapped the data at the init
         self.net_ui_context.ob.data = self.net_ui_context.backup_data
-        bpy.data.meshes.remove(del_data)
-            
+        
+        #remove the patch material from the object and the backup data
+        for i, mat in reversed(list(enumerate(self.net_ui_context.ob.data.materials))):  #TODO wtf reversed(list(enumerate?????)
+            if mat is None or "patches" in mat.name:
+                self.net_ui_context.ob.data.materials.pop(i, update_data=True)
+                
+        bpy.data.meshes.remove(del_data)    
         self.net_ui_context.bme.free() 

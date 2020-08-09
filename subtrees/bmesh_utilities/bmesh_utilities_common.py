@@ -620,7 +620,7 @@ def edge_loops_from_bmedges(bme:BMesh, bm_edges:list, ret:dict={'VERTS'}):
     edges = bm_edges.copy()
 
     while edges:
-        current_edge = bmesh.edges[edges.pop()]
+        current_edge = bme.edges[edges.pop()]
 
         vert_e, vert_st = current_edge.verts[:]
         vert_end, vert_start = vert_e.index, vert_st.index
@@ -633,7 +633,7 @@ def edge_loops_from_bmedges(bme:BMesh, bm_edges:list, ret:dict={'VERTS'}):
             i = len(edges)
             while i:
                 i -= 1
-                ed = bmesh.edges[edges[i]]
+                ed = bme.edges[edges[i]]
                 v_1, v_2 = ed.verts
                 v1, v2 = v_1.index, v_2.index
                 if v1 == vert_end:
@@ -674,7 +674,7 @@ def edge_loops_from_bmedges(bme:BMesh, bm_edges:list, ret:dict={'VERTS'}):
     return geom_dict
 
 # CAN WE DELETE THIS?
-def edge_loops_from_bmedges_old(bmesh:BMesh, bm_edges:list):
+def edge_loops_from_bmedges_old(bme:BMesh, bm_edges:list):
     """
     Edge loops defined by edges (indices)
 
@@ -689,7 +689,7 @@ def edge_loops_from_bmedges_old(bmesh:BMesh, bm_edges:list):
     edges = bm_edges.copy()
 
     while edges:
-        current_edge = bmesh.edges[edges.pop()]
+        current_edge = bme.edges[edges.pop()]
         vert_e, vert_st = current_edge.verts[:]
         vert_end, vert_start = vert_e.index, vert_st.index
         line_poly = [vert_start, vert_end]
@@ -701,7 +701,7 @@ def edge_loops_from_bmedges_old(bmesh:BMesh, bm_edges:list):
             i = len(edges)
             while i:
                 i -= 1
-                ed = bmesh.edges[edges[i]]
+                ed = bme.edges[edges[i]]
                 v_1, v_2 = ed.verts
                 v1, v2 = v_1.index, v_2.index
                 if v1 == vert_end:

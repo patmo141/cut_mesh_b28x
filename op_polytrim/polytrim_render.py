@@ -175,7 +175,7 @@ class SplineNetworkRender():
         #print('gathering data')
         self.buffered_renders = []  #TODO, smart update only the buffers that need it
 
-        if self.network_cutter.knife_complete: return  #do something else
+        
         
         def gather():
             vert_count = 100000
@@ -194,11 +194,53 @@ class SplineNetworkRender():
                 
             try:
                 time_start = time.time()
+           
 
                 # NOTE: duplicating data rather than using indexing, otherwise
                 # selection will bleed
                 #pr = profiler.start('gathering', enabled=not self.async_load)
-                if True:  #why if True?
+                
+                if self.network_cutter.knife_complete:
+                    print('Knife complete ')
+                    for fp in self.network_cutter.face_patches:
+                        if fp == self.network_cutter.active_patch:
+                            sel_val = 1.0
+                        else:
+                            sel_val = 0.0
+                        
+                        mx= self.spline_network.xform.mx_p
+                        mx_n = self.spline_network.xform.mx_n
+                        
+                        print(len(fp.boundary_edges))
+                        for ed in fp.boundary_edges:
+                            
+                            vpath = [mx @ v.co for v in ed.verts]
+                            npath = [mx_n @ v.normal for v in ed.verts]
+                            edge_data = {
+                                            'vco': [
+                                                tuple(v)
+                                                for v in vpath #seg.draw_tessellation
+                                            ],
+                                            'vno': [
+                                                tuple(no)
+                                                for no in npath
+                                            ],
+                                            'sel': [
+                                                sel_val
+                                                for v in vpath
+                                            ],
+                                            'idx': None,  # list(range(len(self.bmesh.edges)*2)),
+                                            }
+                
+                            #make a buffer per segment
+                            try:
+                                self.add_buffered_render(bgl.GL_LINES, edge_data)
+                            except:
+                                print('failed to add edge data')
+                                print((len(edge_data['vco']), len(edge_data['vno']), len(edge_data['sel'])))
+                                
+                                
+                else:  #if True  #why if True?
                     if False:  #self.load_faces
                         tri_faces = [(bmf, list(bmvs))
                                      for bmf in self.bmesh.faces

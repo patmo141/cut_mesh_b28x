@@ -90,12 +90,16 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         return True
 
     def start_pre(self):
-        #do somethng
+        self.load_ob_name = ''
+
         return
     
     def start(self):
         
         self.start_pre()
+        
+        if self.load_ob_name == '':
+            self.load_ob_name = self.context.object.name + '_cut_mesh'
         
         self.cursor_modal_set('CROSSHAIR')
 
@@ -146,6 +150,8 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         
         
         self.setup_ui()
+        
+        self.load_from_bmesh()
         #self.fsm_setup()
         #self.window_state_overwrite(show_only_render=False, hide_manipulator=True)
 

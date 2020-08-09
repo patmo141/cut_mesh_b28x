@@ -152,6 +152,8 @@ class Polytrim_UI_Init280(CookieCutter):
         for patch in self.network_cutter.face_patches:
             patch.grow_seed(self.input_net.bme, self.network_cutter.boundary_edges, max_iters = self.seed_iterations)
             patch.color_patch()
+            patch.find_all_boundary_edges()  #TODO @Patrick @Jonas  
+            
         self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
         
         self.fsm.force_set_state('segmentation')

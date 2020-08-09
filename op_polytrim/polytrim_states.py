@@ -78,7 +78,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
     @CookieCutter.FSM_State('spline main', 'enter')
     def spline_enter(self):
         self.create_points_batch()
-        self.polytrim_render._gather_data() #stupid that I'm passing "self" to this
+        self.polytrim_render._gather_data()
         tag_redraw_all('spline_enter')
         
     @CookieCutter.FSM_State('spline main')
@@ -128,6 +128,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         if self.actions.pressed('connect', unpress=False):
             if self.spline_connect_can_enter():
                 self.actions.unpress()
+                self.cache_to_bmesh()
                 return 'spline connect'
 
         if self.actions.pressed('add point', unpress=False):
@@ -135,18 +136,22 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             # if that fails, try to add a disconnected point
             if self.spline_add_point_can_enter():
                 self.actions.unpress()
+                self.cache_to_bmesh()
                 return 'add point'
         
             elif self.spline_add_point_disconnected_can_enter():
                 self.actions.unpress()
                 return 'add point (disconnected)'
             elif self.spline_insert_point_can_enter():
+                self.cache_to_bmesh()
                 return 'insert point'
 
         if self.actions.pressed('sketch'):
+            self.cache_to_bmesh()
             return 'sketch'
 
         if self.actions.pressed('add point (disconnected)'):
+            self.cache_to_bmesh()
             return 'add point (disconnected)'
 
         if self.actions.pressed('grab'):
@@ -159,6 +164,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             self.hover_spline()
             self.polytrim_render._gather_data()
             tag_redraw_all('delete point')
+            self.cache_to_bmesh()
             #self.ui_text_update()
             return
 
@@ -168,6 +174,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             self.hover_spline()
             self.polytrim_render._gather_data()
             tag_redraw_all('delete point')
+            self.cache_to_bmesh()
             #self.ui_text_update()
             return
 
@@ -283,7 +290,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         self.tweak_press = None
         self.tweak_release = None
         self.tweak_cancel = None
-
+        self.cache_to_bmesh()
 
     #--------------------------------------
     # connect (two endpoints)
@@ -506,6 +513,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             if new_hovered_point: self.net_ui_context.selected = new_hovered_point
         #self.ui_text_update()
         self.sketcher.reset()
+        self.cache_to_bmesh()
         tag_redraw_all('sketch exit')
 
 
@@ -565,6 +573,12 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
     def modal_segmentation(self):
         self.cursor_modal_set('CROSSHAIR')
 
+        if self.actions.pressed('redraw'):
+            self.create_points_batch()
+            self.polytrim_render._gather_data()
+            tag_redraw_all('delete point')
+            
+        
         if self.actions.mousemove_prev:
             #update the bmesh geometry under mouse location
             self.net_ui_context.update(self.actions.mouse)
@@ -577,6 +591,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             print(self.net_ui_context.hovered_near)
             if self.net_ui_context.hovered_near[1]:
                 self.network_cutter.active_patch = self.net_ui_context.hovered_near[1]
+                self.polytrim_render._gather_data()
 
 
         #if right click
@@ -599,6 +614,9 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
                 patch.color_patch()
                 self.net_ui_context.bme.to_mesh(self.net_ui_context.ob.data)
                 self.net_ui_context.ob.data.update()
+        self.polytrim_render._gather_data()
+        tag_redraw_all('segmentation enter')
+        
         #self.ui_text_update()
 
    

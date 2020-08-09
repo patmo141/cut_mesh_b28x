@@ -321,7 +321,7 @@ class BMFacePatch(object):
         for ind in loop:
             self.perimeter_path += [bme.verts[ind].co.copy()]
     
-    def find_all_boundary_edges(self):
+    def find_all_boundary_edges(self, store = True):
         '''
         this does not need loops, will find all MANIFOLD boundary edges
         
@@ -339,7 +339,9 @@ class BMFacePatch(object):
             
             if len([f for f in ed.link_faces if f in self.patch_faces]) == 1:
                 keep_edges.add(ed)
-        
+        if store:
+            self.boundary_edges = keep_edges
+            
         return keep_edges    
             
         
