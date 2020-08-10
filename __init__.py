@@ -121,13 +121,20 @@ def unregister():
     bpy.utils.unregister_class(CutMesh_Polytrim)
     
 class polytrimPanel(bpy.types.Panel):
-    bl_idname = "op_polytrim"
-    bl_label = "Region outlining and mesh cutting tool."
-    bl_space_type = 'PROPERTIES'
-    bl_region_type = 'WINDOW'
-    bl_context = "object"
+    bl_label = "Cut Mesh Tools"
+    bl_idname = "cut_mesh_panel"
+    bl_space_type = "VIEW_3D"
+    bl_region_type = 'UI'
+    bl_category = "Tool"
+    bl_context = ""
 
     def draw(self, context):
-        self.layout.label(text="Mesh Cut")
+        
+        layout = self.layout
+        layout.label(text="Mesh Cut")
+        
+        
+        row = layout.row()
+        row.operator("cut_mesh.polytrim")
 
 bpy.utils.register_class(polytrimPanel)
