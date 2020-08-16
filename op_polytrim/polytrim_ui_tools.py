@@ -435,20 +435,15 @@ class Polytrim_UI_Tools():
         UI tool for storing data depending on where mouse is located
         * Intermediary between polytrim_states and Network
         '''
-        def __init__(self, context, ui_type='DENSE_POLY', geometry_mode = 'DESTRUCTIVE'):
-            self.context = context
+        def __init__(self, source_ob, ui_type='DENSE_POLY', geometry_mode = 'DESTRUCTIVE'):
+            
+            self.context = bpy.context
             self.input_net = None
             self.geometry_mode = geometry_mode
             
-            
-            #### I DONT KNOW THAT THIS NEEDS TO GO IN NET UI CONTEXT ####
-            self.ob = context.object
+            self.ob = source_ob
             self.ob.hide_viewport = False
-            #context.scene.render.engine = 'BLENDER_RENDER'
-            #context.space_data.show_manipulator = False
-            #context.space_data.viewport_shade = 'SOLID'  #TODO until smarter drawing
-            #context.space_data.show_textured_solid = True #TODO until smarter patch drawing
-        
+            
             if "patches" not in bpy.data.materials:
                 mat = bpy.data.materials.new("patches")
                 #mat.use_shadeless = True
@@ -849,7 +844,7 @@ class Polytrim_UI_Tools():
         self.network_cutter.find_orphans(auto_fix = False)
         return   
     
-    def ray_cast_source(self, p2d, in_world=True):
+    def ray_cast_source(self, p2d, in_world=True): #TODO context
         context = self.context
         view_vector, ray_origin, ray_target = get_view_ray_data(context, p2d)
         mx,imx = self.net_ui_context.mx,self.net_ui_context.imx
@@ -1816,7 +1811,7 @@ class Polytrim_UI_Tools():
         del self.grabber
         
         #re-initialize data structures
-        self.net_ui_context = self.NetworkUIContext(self.context, geometry_mode = "NON_DESTRUCTIVE")
+        self.net_ui_context = self.NetworkUIContext(self.context, geometry_mode = "NON_DESTRUCTIVE") #TODO Context
         self.input_net = InputNetwork(self.net_ui_context)
         self.spline_net = SplineNetwork(self.net_ui_context)
         self.network_cutter = NetworkCutter(self.input_net, self.net_ui_context)
@@ -1836,7 +1831,7 @@ class Polytrim_UI_Tools():
 
         # TODO: update self.hover to use Accel2D?
         mouse = self.actions.mouse
-        context = self.context
+        context = self.context  #TODO CONTEXT
 
         mx, imx = get_matrices(self.net_ui_context.ob)
         loc3d_reg2D = view3d_utils.location_3d_to_region_2d

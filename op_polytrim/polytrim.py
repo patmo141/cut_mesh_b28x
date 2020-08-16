@@ -90,9 +90,22 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         return True
 
     def start_pre(self):
+        prefs = get_settings()  #get this addon settings
+        
         self.load_ob_name = ''
-
+        self.destructive = prefs.destructive
+        
         return
+    
+    def behavior_preferences(self):
+        
+        prefs = get_settings() 
+        self.spline_preview_tess = prefs.spline_preview_tess
+        self.sketch_fit_epsilon = prefs.sketch_fit_epsilon
+        self.patch_boundary_fit_epsilon =  prefs.patch_boundary_fit_epsilon
+        self.spline_tessellation_epsilon = prefs.spline_tessellation_epsilon
+        
+        
     
     def start(self):
         
@@ -115,11 +128,8 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.variable_2 = BoundInt('''self.variable_2_gs''',  min_value = 0, max_value = 10)
         self.variable_3 = BoundBool('''options['variable_3']''')
         
-        
-
-        prefs = get_settings()
-        
-        self.net_ui_context = self.NetworkUIContext(self.context, geometry_mode = prefs.destructive)
+        source_ob = bpy.context.object
+        self.net_ui_context = self.NetworkUIContext(source_ob, geometry_mode = self.destructive)
 
         self.hint_bad = False   #draw obnoxious things over the bad segments
         self.input_net = InputNetwork(self.net_ui_context)
@@ -135,14 +145,7 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.last_bad_check = time.time()
         self.seed_iterations = 10000
         
-        
-        #get from preferences or override
-        #TODO maybe have a "preferences" within the segmentation operator
-        self.spline_preview_tess = prefs.spline_preview_tess
-        self.sketch_fit_epsilon = prefs.sketch_fit_epsilon
-        self.patch_boundary_fit_epsilon =  prefs.patch_boundary_fit_epsilon
-        self.spline_tessellation_epsilon = prefs.spline_tessellation_epsilon
-
+        self.behavior_preferences()
 
         self.polytrim_render = SplineNetworkRender(self.spline_net, 
                                                    self.network_cutter, 

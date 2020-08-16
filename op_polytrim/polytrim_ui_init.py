@@ -22,6 +22,17 @@ class Polytrim_UI_Init280(CookieCutter):
         print('tool action')
         return
 
+    
+    def bl_ui_vis_setup(self):
+        
+        #TODO THIS IS MORE BLENDER UI SETTINGS TO MANAGE
+        space = bpy.context.space_data
+        space.shading.type = 'SOLID'
+        space.shading.color_type = 'VERTEX'
+        
+        
+        pass
+        
     def setup_ui(self):
         
         #go ahead and open these files
@@ -35,11 +46,8 @@ class Polytrim_UI_Init280(CookieCutter):
         
         #we need to read ui_core, particulalry UI_Element
         
-        #TODO THIS IS MORE BLENDER UI SETTINGS TO MANAGE
-        space = bpy.context.space_data
-        space.shading.type = 'SOLID'
-        space.shading.color_type = 'VERTEX'
-        
+
+        self.bl_ui_vis_setup()
         
         
         #collapsible, and framed_dialog

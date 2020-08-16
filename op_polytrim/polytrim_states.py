@@ -84,8 +84,6 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
     @CookieCutter.FSM_State('spline main')
     def spline_main(self):
         
-        context = self.context
-        
         if self.actions.pressed('RET'):
             self.done()
             return
@@ -239,7 +237,7 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
 
     @CookieCutter.FSM_State('tweak', 'enter')
     def spline_tweak_enter(self):
-        context = self.context
+        context = self.context  #bpy.context?
         loc3d_reg2D = view3d_utils.location_3d_to_region_2d
         self.tweak_point_p2d = loc3d_reg2D(context.region, context.space_data.region_3d, self.net_ui_context.selected.world_loc)
         self.tweak_mousedown = self.actions.mouse
