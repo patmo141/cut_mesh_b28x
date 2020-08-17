@@ -97,7 +97,8 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
             
 
         if self.actions.pressed('cancel'):
-            self.main_menu_options()
+            #self.main_menu_options()
+            pass
             
             
         if self.actions.pressed('redraw'):
