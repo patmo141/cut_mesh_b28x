@@ -110,6 +110,7 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
     def start(self):
         
         self.start_pre()
+        self.behavior_preferences()
         
         if self.load_ob_name == '':
             self.load_ob_name = self.context.object.name + '_cut_mesh'
@@ -145,7 +146,7 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.last_bad_check = time.time()
         self.seed_iterations = 10000
         
-        self.behavior_preferences()
+        
 
         self.polytrim_render = SplineNetworkRender(self.spline_net, 
                                                    self.network_cutter, 
