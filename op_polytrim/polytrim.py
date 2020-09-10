@@ -95,6 +95,8 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.load_ob_name = ''
         self.destructive = prefs.destructive
         
+        self.model_name = bpy.context.object.name
+        
         return
     
     def behavior_preferences(self):
@@ -129,7 +131,17 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
         self.variable_2 = BoundInt('''self.variable_2_gs''',  min_value = 0, max_value = 10)
         self.variable_3 = BoundBool('''options['variable_3']''')
         
-        source_ob = bpy.context.object
+        #TODO, visualization settings!
+        source_ob = bpy.data.objects.get(self.model_name)
+        bpy.context.view_layer.objects.active = source_ob
+        source_ob.hide_set(False)
+        source_ob.select_set(True)
+        
+        if not source_ob:
+            self.done(cancel = True)
+            return
+        
+
         self.net_ui_context = self.NetworkUIContext(source_ob, geometry_mode = self.destructive)
 
         self.hint_bad = False   #draw obnoxious things over the bad segments
