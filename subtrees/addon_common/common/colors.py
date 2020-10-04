@@ -20,6 +20,12 @@ Created by Jonathan Denning, Jonathan Williamson
 '''
 
 
+
+import math
+import random
+from mathutils import Color
+
+
 #####################################################################################
 # below are various token converters
 
@@ -179,3 +185,34 @@ colorname_to_color = {
     'darkslategrey': (47,79,79),
     'black': (0,0,0),
 }
+
+
+
+
+def get_random_color():
+    global random_hsvs, random_index
+    h,s,v = random_hsvs[random_index]
+    random_index = (random_index + 1) % len(random_hsvs)
+    h = (h + (random.random() * 0.1 - 0.05)) % 1
+    s = (s - (random.random() * 0.1))
+    v = (v - (random.random() * 0.1))
+    c = Color((0,0,0))
+    c.hsv = (h,s,v)
+    return c
+
+def rgb_to_hsv(rgb):
+    return Color(rgb).hsv
+
+def hsv_to_rgb(hsv):
+    c = Color((0,0,0))
+    c.hsv = hsv
+    return c
+
+random_hsvs = [
+    (h, s, v)
+    for h in [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+    for s in [0.5, 0.75, 1.0]
+    for v in [0.5, 0.75, 1.0]
+]
+random.shuffle(random_hsvs)
+random_index = 0
