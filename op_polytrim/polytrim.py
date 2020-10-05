@@ -8,6 +8,7 @@ import time
 import bpy
 
 from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
+from ..subtrees.addon_common.common.useractions import ActionHandler
 from ..subtrees.addon_common.common import ui
 from ..subtrees.addon_common.common.utils import get_settings
 from ..subtrees.addon_common.common.boundvar import BoundInt, BoundFloat, BoundBool
@@ -142,6 +143,7 @@ class CutMesh_Polytrim(Polytrim_States280, Polytrim_UI_Init280, Polytrim_UI_Tool
             return
         
 
+        self.actions = ActionHandler(bpy.context, self.default_keymap)
         self.net_ui_context = self.NetworkUIContext(source_ob, geometry_mode = self.destructive)
 
         self.hint_bad = False   #draw obnoxious things over the bad segments
