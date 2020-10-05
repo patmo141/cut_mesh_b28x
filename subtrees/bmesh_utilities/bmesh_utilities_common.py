@@ -17,7 +17,7 @@ from bmesh.types import BMesh, BMVert, BMEdge, BMFace
 from mathutils import Vector, Matrix
 from mathutils import Matrix, Vector, Color
 from mathutils.bvhtree import BVHTree
-
+from mathutils.geometry import intersect_line_line_2d
 
 ###############################
 ### Topology Operators   ######
@@ -652,7 +652,7 @@ def edge_loops_from_bmedges_topo(bme, bm_edges, max_loops = 10):
         
     return loops
     
-def relax_edge_loop(bme, bmedges, iters, factor = .25,  debug = False):
+def relax_edge_loop(bmedges, iters, factor = .25,  debug = False):
     
     verts = set()
     for ed in bmedges:
@@ -667,19 +667,251 @@ def relax_edge_loop(bme, bmedges, iters, factor = .25,  debug = False):
         for i, v in enumerate(verts):
             
             neighbor = neighbors[i]
-            deltas[i] = [factor * (neighbor[0].co + neighbor[1].co - 2 * v.co)]
+            deltas[i] = factor * (neighbor[0].co + neighbor[1].co - 2 * v.co)
             
-        for v in verts:
-            v.co += delta
+        for i, v in enumerate(verts):
+            v.co += deltas[i]
             
     
     return       
         
+
+def discrete_curl(coords, z):
+    '''
+    coords is a 2d list in order
+    '''
+
+    curl = 0
+    l = len(coords)
+    for n in range(0,l-2):
+
+        #Vec representation of the two edges
+        V0 = (coords[n+1] - coords[n])
+        V1 = (coords[n+2] - coords[n+1])
         
+        ##XY projection
+        T0 = V0 - V0.project(z)
+        T1 = V1 - V1.project(z)
         
+        cross = T0.cross(T1)    
         
+           
+        sign = 1  #not needed for 2d vectors
+        if cross.dot(z) < 0:
+            sign = -1
+
+        rot = T0.rotation_difference(T1)  
+        ang = rot.angle
+        curl = curl + ang *sign
+        #lerps[n] = V0.lerp(V1,.5)
+   
+    clockwise = 1
+    if curl < 0:
+        clockwise = -1
+        
+    return curl
+        
+
+             
+def remove_2d_intersections(bme, ed_loop, vert_loop, view_dir, threshold = .0001, threshold_2d = .001):
+    '''
+    recursively removes self intersections in an edge loop projected into a plane
+    defined by view_dir
     
-     
+    loop  is a list in order of edges and a list in order of verts
+    the output of edge_loops_from_bmedges_topo() method
+    
+    '''
+    
+    
+    #loops = edge_loops_from_bmedges_topo(bme, edges)
+    
+    #dissolve short edges in the loop
+    
+    #TODO project X,Y,Z for view dir
+    
+    v_set = set(vert_loop)
+    
+    #project them all flat in the view_dir and store in dictionary
+    vco = {}
+    for v in vert_loop:
+        vco[v.index] = Vector((v.co[0], v.co[1]))
+        #vco[v.index] = v.co - v.co.dot(view_dir) * view_dir
+        
+    curl = discrete_curl([v.co for v in vert_loop], Vector((0,0,1)))
+    
+    C = round(abs(curl)/(2 * math.pi))
+    
+    
+    #store their index in a dictionary
+    ed_loop_index = {}
+    for n, ed in enumerate(ed_loop):
+        ed_loop_index[ed] = n
+    
+    vert_loop_index = {}
+    for n, v in enumerate(vert_loop):
+        vert_loop_index[ed] = n
+        
+        
+    def test_intersection(ed0, ed1, threshold):
+        
+        #make sure not nieghbors
+        if len(set(ed0.verts) & set(ed1.verts)):
+            return None, None
+        
+        
+        v00, v01 = vco[ed0.verts[0].index], vco[ed0.verts[1].index]
+        v10, v11 = vco[ed1.verts[0].index], vco[ed1.verts[1].index]
+        
+        
+        
+        
+        i2d = intersect_line_line_2d(v00, v01, v10, v11)
+        
+        if i2d == None:
+            return None, None
+        
+        b = (v01 - v00).length
+        
+        if b < .000001:
+            print('zero len problem')
+            
+            print(ed0)
+            print(ed1)
+            print(ed0.verts[:])
+            print(ed1.verts[:])
+            
+            return None, None
+            
+            
+        factor = (i2d - v00).length/(v01 - v00).length
+            
+        if factor < threshold or factor > 1 - threshold:
+            #print('intersected but factor wrong')
+            #print(factor)
+            return None, None
+            
+        print('FOUND AN INTERSECTION')
+        print(factor)
+        
+       
+        v3d = ed0.verts[1].co - ed0.verts[0].co
+        i3d  = ed0.verts[0].co + factor * v3d
+        
+        return i2d, i3d
+        
+
+    def insert_new_vert(i2d, i3d, ed, other_ed):
+        '''
+        inserts a new vertex at the edge intersection
+        '''
+        ind = len(v_set)
+        v_new = bme.verts.new(i3d)
+        v_new.index = ind
+        vco[ind] = i2d
+        v_set.add(v_new)
+        bme.verts.index_update()
+        
+        #create new edges at the insertion
+        for v in  ed.verts[:] + other_ed.verts[:]:
+            ed_new = bme.edges.new([v_new, v])
+            untested_edges.add(ed_new)
+            new_edges.add(ed_new)
+    
+    def uncross_edges(i2d, i3d, ed0, ed1):
+        '''
+        changes the connectivity to prevent the overlap
+        '''
+        #check direction of the edges wrt to the loop
+        n = len(vert_loop)
+        i00 = vert_loop.index(ed0.verts[0])
+        i01 = vert_loop.index(ed0.verts[1])
+        i10 = vert_loop.index(ed1.verts[0])
+        i11 = vert_loop.index(ed1.verts[1])
+        
+        if i00 == 0 and i01 == n -1:
+            v00, v01 = ed0.verts[1], ed0.verts[0]
+            
+        elif i00 == n-1 and i01 == 0:
+            v00, v01 = ed0.verts[0], ed0.verts[1]
+            
+        else:
+            if i00 < i01:
+                v00, v01 = ed0.verts[0], ed0.verts[1]
+            else:
+                v00, v01 = ed0.verts[1], ed0.verts[0]
+            
+        if i10 == 0 and i11 == n-1:
+            v10, v11 = ed1.verts[1], ed1.verts[0]
+            
+        elif i10 == n-1 and i11 == 0:
+            v10, v11 = ed1.verts[0], ed1.verts[1]
+        else:
+            if i10 < i11:
+                v10, v11 = ed1.verts[0], ed1.verts[1]
+            else:
+                v10, v11 = ed1.verts[1], ed1.verts[0]    
+            
+        new_ed0 = bme.edges.new((v00, v11))
+        new_ed1 = bme.edges.new((v10, v01))
+        
+        untested_edges.add(new_ed0)
+        new_edges.add(new_ed0)
+            
+        untested_edges.add(new_ed1)
+        new_edges.add(new_ed1)
+        
+        
+    test_edges = set()
+    untested_edges = set(ed_loop)
+    
+    iters = 0
+    n_intersections = 0
+    new_edges = set()
+    while len(untested_edges) and iters < 500000:  #TODO, let this loose
+        
+        ed = untested_edges.pop()
+        
+        broken = False
+        for other_ed in untested_edges:
+            
+            #print('testing %i vs %i' % (ed.index, other_ed.index))
+            iters += 1
+            if ed == other_ed: continue
+            
+            i2d, i3d = test_intersection(ed, other_ed, threshold)
+            if i2d != None:
+                
+                #insert_new_vert(i2d, i3d, ed, other_ed)
+                uncross_edges(i2d, i3d, ed, other_ed)
+                
+                bme.edges.remove(ed)
+                bme.edges.remove(other_ed)
+                
+                break_1 = True  #stupid way to break both loop[s
+                n_intersections +=1 
+                broken = True
+                break
+            
+        if broken:
+            untested_edges.remove(other_ed)
+            
+            
+                
+    n_twist = (n_intersections - C + 1 )/2
+    n_loopty = (C + n_intersections -1)/2
+    
+    print('The discrete curl is %f' % curl)
+    print('The C factor is %i ' % C)
+    print('There are %i twists' % n_twist)
+    print('There are %i n_loopty' % n_loopty)
+    print('There are %i intersections' % n_intersections)      
+            
+    #give back the number of intersections and new edges (also maybe old edges?)
+    
+    return n_intersections, [ed for ed in new_edges if ed.is_valid], [ed for ed in ed_loop if ed.is_valid]
+
+            
 def offset_bmesh_edge_loop(bme, bmedges, axis, res, expected_loops = 1, debug = False):
 
     '''
@@ -748,10 +980,11 @@ def offset_bmesh_edge_loop(bme, bmedges, axis, res, expected_loops = 1, debug = 
     abs_curl = clockwise * curl
     expected_curl = expected_loops * 2 * math.pi
     
-    if abs(abs_curl - expected_loops * math.pi) > .1 * 2 * math.pi: #10% different than 2*pi
+    if abs(abs_curl - expected_loops * 2 * math.pi) > .2 * 2 * math.pi: #10% different than 2*pi
         print('WARNING, encountered unexpected number of loops')
         print('Expected a curl of %f' % expected_curl)
         print('Calculated a curl of %f' % curl)
+        print('Calculated an abs curl of %f' % abs_curl)
     
     if debug:
         print(curl)
@@ -764,7 +997,7 @@ def offset_bmesh_edge_loop(bme, bmedges, axis, res, expected_loops = 1, debug = 
         
         V = lerps[n]
         
-        trans = z.cross(V)*clockwise
+        trans = -1 * clockwise * z.cross(V)
         trans.normalize()
         #delta = scale_vec_mult(trans, iscl)
         #delta *= res 
@@ -1590,7 +1823,36 @@ def bme_rip_vertex(bme, bmvert):
     bme.verts.remove(bmvert)
     
 
-
+def collapse_ed_simple(bme, ed):
+    '''
+    only works  when there are no faces
+    '''
+    
+    
+    v0 = ed.verts[0]
+    v1 = ed.verts[1]
+    
+    
+    
+    ed0 = [ed_l for ed_l in v0.link_edges[:] if ed_l != ed][0]
+    ed1 = [ed_l for ed_l in v1.link_edges[:] if ed_l != ed][0]
+    
+    v00 = ed0.other_vert(v0)
+    v11 = ed1.other_vert(v1)
+    v_new = bme.verts.new(.5 * (v00.co + v11.co))
+    
+    bme.edges.remove(ed0)
+    bme.edges.remove(ed1)
+    bme.verts.remove(v0)
+    bme.verts.remove(v1)
+    
+    ed0_new = bme.edges.new((v_new, v00))
+    ed1_new = bme.edges.new((v_new, v11))
+    
+    return [ed0_new, ed1_new] , [ed0, ed1]
+    
+    
+    
 ####################################
 ###  Geometric Operators  ##########
 ####################################
