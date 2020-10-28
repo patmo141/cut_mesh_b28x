@@ -851,15 +851,21 @@ def remove_2d_intersections(bme, ed_loop, vert_loop, view_dir, threshold = .0001
                 v10, v11 = ed1.verts[0], ed1.verts[1]
             else:
                 v10, v11 = ed1.verts[1], ed1.verts[0]    
-            
-        new_ed0 = bme.edges.new((v00, v11))
-        new_ed1 = bme.edges.new((v10, v01))
         
-        untested_edges.add(new_ed0)
-        new_edges.add(new_ed0)
-            
-        untested_edges.add(new_ed1)
-        new_edges.add(new_ed1)
+        try:    
+            new_ed0 = bme.edges.new((v00, v11))
+            untested_edges.add(new_ed0)
+            new_edges.add(new_ed0)
+        
+        except:
+            print('ALREADY EDGE EXISTS?  Dunno what to do about that ')
+        
+        try:
+            new_ed1 = bme.edges.new((v10, v01))
+            untested_edges.add(new_ed1)
+            new_edges.add(new_ed1)
+        except:
+            print('ALREADY EDGE EXISTS?  Dunno what to do about that ')
         
         
     test_edges = set()
