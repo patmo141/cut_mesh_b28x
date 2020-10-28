@@ -1964,12 +1964,14 @@ class Polytrim_UI_Tools():
         # ray tracing
         view_vector, ray_origin, ray_target = get_view_ray_data(context, mouse)
         #loc, no, face_ind = ray_cast(self.net_ui_context.ob, imx, ray_origin, ray_target, None)
-        loc,_,face_ind = ray_cast_bvh(self.net_ui_context.bvh, imx, ray_origin, ray_target, None)
+        loc,sf_no,face_ind = ray_cast_bvh(self.net_ui_context.bvh, imx, ray_origin, ray_target, None)
 
         # bail if we did not hit the source
         if face_ind == -1 or face_ind == None: return
 
-        loc = mx @ loc      # transform loc to world
+        loc = mx @ loc  # transform loc to world 
+        w_no = self.net_ui_context.mx_norm @ sf_no   # transform loc to world
+        
         self.net_ui_context.closest_ep = self.closest_spline_endpoint(loc)
 
         # find length between vertex and mouse
@@ -1981,7 +1983,7 @@ class Polytrim_UI_Tools():
         closest_ip = min(self.spline_net.points, key = lambda x: dist3d(x.world_loc))
         pixel_dist = dist(loc3d_reg2D(context.region, context.space_data.region_3d, closest_ip.world_loc))
 
-        if pixel_dist < select_radius:
+        if pixel_dist < select_radius and closest_ip.normal.dot(w_no) > 0:
             # the mouse is hovering over a point
             self.net_ui_context.hovered_near = ['POINT', closest_ip]  #TODO, probably just store the actual InputPoint as the 2nd value?
             self.net_ui_context.hovered_dist2D = pixel_dist
@@ -2025,6 +2027,11 @@ class Polytrim_UI_Tools():
                 bound = intersect[1]
                 if (dist < select_radius**2) and (bound < 1) and (bound > 0):
                     spline_seg = closest_seg.parent_spline
+                    n0, n1 = spline_seg.n0, spline_seg.n1
+                    if n0.normal.dot(w_no) < 0 and n1.normal.dot(w_no) < 0:
+                        print('wrong side')
+                        return
+                    
                     self.net_ui_context.hovered_near = ['EDGE', spline_seg]
                     tag_redraw_all('HOVERED EDGE')
                     return

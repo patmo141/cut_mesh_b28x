@@ -335,7 +335,6 @@ class SplineNetworkRender():
 
                                     #segmnet has been calculated successfully    
                                     elif len(ip_seg.path) >= 2 and not ip_seg.bad_segment and ip_seg.calculation_complete: #ip_seg in parent.network_cutter.completed_segments:
-                                        print('good segment')
                                         #draw3d_polyline(seg.path,  green2, 2, view_loc, view_ortho)    
                                         if math.fmod(len(ip_seg.path),2) != 0:
                                             vpath = ip_seg.path + [ip_seg.path[-1]]

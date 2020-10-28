@@ -3191,7 +3191,7 @@ class InputPoint(object):  # NetworkNode
     '''
     Representation of an input point
     '''
-    def __init__(self, world, local, view, normal, face_ind, seed_geom = None, bmface = None, bmedge = None, bmvert = None):
+    def __init__(self, world, local, normal, view, face_ind, seed_geom = None, bmface = None, bmedge = None, bmvert = None):
         self.world_loc = world
         self.local_loc = local
         self.view = view
