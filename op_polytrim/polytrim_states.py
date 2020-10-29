@@ -10,7 +10,7 @@ import random
 from bpy_extras import view3d_utils
 
 from ..subtrees.addon_common.cookiecutter.cookiecutter import CookieCutter
-from ..subtrees.addon_common.common.blender import show_error_message, tag_redraw_all
+from ..subtrees.addon_common.common.blender import show_error_message, tag_redraw_all, show_blender_popup
 from ..subtrees.addon_common.common.fsm import FSM
 
 from .polytrim_datastructure import InputPoint, SplineSegment, CurveNode
@@ -515,6 +515,21 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         self.cache_to_bmesh()
         tag_redraw_all('sketch exit')
 
+    @CookieCutter.FSM_State('spline', 'can exit')
+    def spline_can_exit(self):
+        # exit spline mode iff cut network has finished and there are no bad segments
+        c1 = not any([seg.is_bad for seg in self.input_net.segments])
+        if not c1:
+            self.hint_bad = True
+            show_error_message('There are bad segments!  Look for red dots and adjust the margin')
+        else:
+            self.hint_bad = False
+        c2 = all([seg.calculation_complete for seg in self.input_net.segments])
+        if not c2:
+            show_error_message('Still calculating cuts please wait!')
+        return c1 and c2
+    
+    
 
     @CookieCutter.FSM_State('seed')
     def modal_seed(self):
@@ -540,6 +555,14 @@ class Polytrim_States280(CookieCutter): #(CookieCutter) <- May need to do it thi
         print('seed can enter')
         # enter seed mode iff there is at least one cycle
         ip_cyc, seg_cyc = self.input_net.find_network_cycles()
+        if any([ip.is_endpoint for ip in self.input_net.points]):
+            self.hint_bad = True
+            show_blender_popup("There are breaks in the margin.  Please close all loops or press the Connnect Endpoints button", "Open Loops Error", icon = "ERROR", wrap = 150)
+            #show_error_message("There are breaks in the margin!", wrap = 150) #  Look for yellow dots and adjust the margin or use the "Clonnect Endpoints" tool.')
+            print('breaks in margin')
+            return False
+        
+        
         return len(ip_cyc) > 0
 
     @CookieCutter.FSM_State('seed', 'enter')

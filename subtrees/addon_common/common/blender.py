@@ -293,7 +293,7 @@ def show_blender_popup(message, title="Message", icon="INFO", wrap=80):
         lines = nlines
     def draw(self,context):
         for line in lines:
-            self.layout.label(line)
+            self.layout.label(text = line)
     bpy.context.window_manager.popup_menu(draw, title=title, icon=icon)
     return
 
